@@ -22,7 +22,7 @@ public class Main {
     public static Connection conn;
 
     // TODO: 10/01/2026 need to handle these exceptions and also need to add the port and host as an input and not fixed
-
+    // TODO: 11/01/2026 Fix the bug with the double file printing
     public static void main(String[] args) throws IOException, InterruptedException, SQLException {
 
         conn = DriverManager.getConnection(
@@ -31,7 +31,16 @@ public class Main {
                 "12345"
         );
 
-        setBenchmarkParamValues();
+        // TODO: 11/01/2026 Check if any existnig commands exist in the db then allow to reuse it
+
+        System.out.println("Would you like to reuse existing pgbench commands? (y/n)");
+        String reuseCommandDecesion =  sc.nextLine();
+        if(reuseCommandDecesion.equalsIgnoreCase("y")) {
+            reusePreviousPgbenchCommands();
+        }
+        else {
+            setBenchmarkParamValues();
+        }
 
         ProcessBuilder processBuilder = new ProcessBuilder(Commands);
         processBuilder.environment().put("PGPASSWORD", "12345");

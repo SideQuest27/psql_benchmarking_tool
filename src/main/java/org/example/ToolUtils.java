@@ -218,12 +218,90 @@ public class ToolUtils {
             ps2.setString(1, cmd);
             ps2.executeUpdate();
             System.out.println("Oldest Benchmark Record replaced!");
+            rs.close();
+            ps.close();
+            ps2.close();
         }
     }
 
-    public static void  reusePreviousPgbenchCommands(){
-        System.out.println("Would you like to reuse existing pgbench commands");
-        String reuseCommandDecesion =  sc.nextLine();
+    public static void  reusePreviousPgbenchCommands() throws SQLException {
+
+        PreparedStatement ps = conn.prepareStatement("SELECT DISTINCT pgbench_cmd FROM benchmark_run",
+                ResultSet.TYPE_SCROLL_INSENSITIVE,
+                ResultSet.CONCUR_READ_ONLY);
+
+        ResultSet rs =  ps.executeQuery();
+
+        StringBuilder results = new StringBuilder("");
+        int id = 1;
+        while (rs.next()) {
+            results.append(String.valueOf(id++) +": "+ rs.getString(1) + "\n");   // or rs.getString(1)
+        }
+
+        int selectedId;
+
+        while (true) {
+            System.out.println("Provide the id of the command you would like to reuse :");
+            System.out.println(results);
+
+            selectedId = sc.nextInt();
+            sc.nextLine();
+
+            if (!(selectedId < id && selectedId > 0)) {
+                System.out.println("Invalid input!");
+            } else break;
+        }
+
+        String selectedCommand;
+        rs.beforeFirst();
+
+
+
+        for(int i=0;i< id-1;i++){
+            rs.next();
+        }
+        selectedCommand = rs.getString(1);
+
+        commandValueExtractor(selectedCommand);
+
+        rs.close();
+        ps.close();
+    }
+
+    private static void commandValueExtractor(String cmd){
+        Matcher m;
+
+        m = builtinPattern.matcher(cmd);
+        String builtin = m.find() ? m.group(1) : null;
+
+        m = modePattern.matcher(cmd);
+        String mode = m.find() ? m.group(1) : null;
+
+        m = clientsPattern.matcher(cmd);
+        String clients = m.find() ? m.group(1) : null;
+
+        m = timePattern.matcher(cmd);
+        String duration = m.find() ? m.group(1) : null;
+
+        m = threadsPattern.matcher(cmd);
+        String threads = m.find() ? m.group(1) : null;
+
+        m = filePattern.matcher(cmd);
+        String file = m.find() ? m.group(1) : null;
+
+        Commands = new ArrayList<>();
+        Commands.add("C:\\Program Files\\PostgreSQL\\16\\bin\\pgbench.exe");
+        if(file==null) Commands.addAll(List.of("--builtin="+builtin));
+        Commands.addAll(List.of("-M",mode));
+        if(file != null) Commands.addAll(List.of("-f",file));
+        Commands.addAll(List.of(
+                "-c", String.valueOf(clients),
+                "-T", String.valueOf(duration),
+                "-j", String.valueOf(threads),
+                "-p", "5433",
+                "-U", "postgres",
+                "pgbench"));
     }
 }
 
+// TODO: 11/01/2026 make all the helper functions to private
