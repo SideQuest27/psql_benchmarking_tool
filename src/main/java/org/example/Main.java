@@ -5,7 +5,6 @@ import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.SQLException;
 import java.util.List;
-import java.util.Scanner;
 
 import static org.example.ToolUtils.*;
 
@@ -31,8 +30,6 @@ public class Main {
                 "12345"
         );
 
-        // TODO: 11/01/2026 Check if any existnig commands exist in the db then allow to reuse it
-
         System.out.println("Would you like to reuse existing pgbench commands? (y/n)");
         String reuseCommandDecesion =  sc.nextLine();
         if(reuseCommandDecesion.equalsIgnoreCase("y")) {
@@ -55,7 +52,10 @@ public class Main {
             savingResults();
             System.out.println("Would you like to rerun the same benchmark? (y/n)");
             String rerunDecesion =  sc.nextLine();
-            if(!rerunDecesion.equalsIgnoreCase("y")) break;
+            if(!rerunDecesion.equalsIgnoreCase("y")){
+                flushOldCommandParams();
+                break;
+            }
         } while (true);
     }
 

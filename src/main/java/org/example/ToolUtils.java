@@ -302,6 +302,18 @@ public class ToolUtils {
                 "-U", "postgres",
                 "pgbench"));
     }
+
+    public static void flushOldCommandParams(){
+        Commands = null;
+        Clients = 0;
+        Jobs = 0;
+        Time = 0;
+        Workload = 0;
+        Protocol = 0;
+        WorkloadString = null;
+        ProtocolString = null;
+        ScriptPath = null;
+    }
 }
 
 // TODO: 11/01/2026 make all the helper functions to private
