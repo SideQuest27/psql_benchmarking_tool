@@ -57,6 +57,8 @@ public class Main {
                 break;
             }
         } while (true);
+
+        printResultsSummery();
     }
 
 }

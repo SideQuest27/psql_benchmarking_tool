@@ -175,20 +175,16 @@ public class ToolUtils {
     }
 
     public static void savingResults() throws SQLException {
-        while(true) {
-            System.out.println("would you like to save the results (y/n)");
-            String saveDecision = sc.nextLine();
-            if(saveDecision.trim().equalsIgnoreCase("y")){
-                String pgbench_cmd = String.join(" ", Commands).replace("C:\\Program Files\\PostgreSQL\\16\\bin\\pgbench.exe","pgbench");
-                double tps = extractDouble(tpsPatern, pgBenchOutput);
-                double latency = extractDouble(latencyPattern, pgBenchOutput);
-                double connectTime = extractDouble(connectPattern, pgBenchOutput);
-                int transactions = extractInt(txPattern, pgBenchOutput);
-                insertingResultsIntoSQLTable(pgbench_cmd,transactions,latency,connectTime,tps);
-                System.out.println("Benchmark saved...");
-                break;
-            }
-            else break;
+        System.out.println("would you like to save the results (y/n)");
+        String saveDecision = sc.nextLine();
+        if(saveDecision.trim().equalsIgnoreCase("y")){
+            String pgbench_cmd = String.join(" ", Commands).replace("C:\\Program Files\\PostgreSQL\\16\\bin\\pgbench.exe","pgbench");
+            double tps = extractDouble(tpsPatern, pgBenchOutput);
+            double latency = extractDouble(latencyPattern, pgBenchOutput);
+            double connectTime = extractDouble(connectPattern, pgBenchOutput);
+            int transactions = extractInt(txPattern, pgBenchOutput);
+            insertingResultsIntoSQLTable(pgbench_cmd,transactions,latency,connectTime,tps);
+            System.out.println("Benchmark saved...");
         }
     }
 
@@ -257,7 +253,7 @@ public class ToolUtils {
 
 
 
-        for(int i=0;i< id-1;i++){
+        for(int i=0;i< selectedId;i++){
             rs.next();
         }
         selectedCommand = rs.getString(1);
@@ -313,6 +309,41 @@ public class ToolUtils {
         WorkloadString = null;
         ProtocolString = null;
         ScriptPath = null;
+    }
+    public static void printResultsSummery() throws SQLException {
+
+        final String RESET  = "\u001B[0m";
+        final String CYAN   = "\u001B[36m";
+        final String GREEN  = "\u001B[32m";
+        final String YELLOW = "\u001B[33m";
+        final String BLUE   = "\u001B[34m";
+        final String PURPLE = "\u001B[35m";
+        final String RED    = "\u001B[31m";
+
+        String sql = """
+                SELECT
+                    pgbench_cmd,
+                    COUNT(*) AS runs,
+                    ROUND(AVG(tps)::numeric, 2) AS avg_tps,
+                    ROUND(AVG(latency)::numeric, 2) AS avg_latency,
+                    ROUND(AVG(transactions_processed)::numeric, 2) AS avg_transactions_processed,
+                    ROUND(AVG(connect_time)::numeric, 2) AS avg_connect_time
+                FROM benchmark_run
+                GROUP BY pgbench_cmd;
+                """;
+        PreparedStatement ps = conn.prepareStatement(sql);
+        ResultSet rs = ps.executeQuery();
+
+        while(rs.next()){
+            System.out.println(
+                    CYAN   + "Query: " + rs.getString(1) + RESET + " | " +
+                    GREEN  + "Runs: " + rs.getInt(2) + RESET + " | " +
+                    YELLOW + "Avg TPS: " + rs.getDouble(3) + RESET + " | " +
+                    BLUE   + "Avg Latency: " + rs.getDouble(4) + RESET + " | " +
+                    PURPLE + "Avg Tx: " + rs.getDouble(5) + RESET + " | " +
+                    RED    + "Avg Connect: " + rs.getDouble(6) + RESET
+            );
+        }
     }
 }
 
