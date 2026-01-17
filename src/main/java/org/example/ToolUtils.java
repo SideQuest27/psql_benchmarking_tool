@@ -85,7 +85,7 @@ public class ToolUtils {
                 System.out.println("Invalid input! enter again.");
             }
         }
-        appendParamsToCommandString();
+        appendParamsToCommandString((Workload == 4),WorkloadString,ProtocolString,ScriptPath,Clients,Time,Jobs);
     }
 
     public static boolean checkForSqlScript(String scriptPath){
@@ -93,19 +93,19 @@ public class ToolUtils {
         return  (Files.isRegularFile(path) && path.toString().toLowerCase().endsWith(".sql"));
     }
 
-    public static void appendParamsToCommandString(){
+    public static void appendParamsToCommandString(boolean CustomWorkload,String WorkloadString, String ProtocolString,String ScriptPath,int Clients,int Time,int Jobs){
         Commands = new ArrayList<>();
         Commands.add("C:\\Program Files\\PostgreSQL\\16\\bin\\pgbench.exe");
-        if(Workload < 4) Commands.add(WorkloadString);
+        if(!CustomWorkload) Commands.add(WorkloadString);
         Commands.addAll(List.of("-M",ProtocolString));
-        if(Workload == 4) Commands.addAll(List.of("-f",ScriptPath));
+        if(CustomWorkload) Commands.addAll(List.of("-f",ScriptPath));
         Commands.addAll(List.of(
                 "-c", String.valueOf(Clients),
                 "-T", String.valueOf(Time),
                 "-j", String.valueOf(Jobs),
-                "-p", "5433",
+                "-p", "5432",
                 "-U", "postgres",
-                "pgbench"));
+                "pgbenchdb"));
     }
 
     public static void readAndPrintOutputStream(Process process) throws IOException, InterruptedException {
@@ -130,6 +130,9 @@ public class ToolUtils {
     }
 
     public static void initialiseTables() throws SQLException {
+
+        // TODO: 16/01/2026 need to add the functionality for autoinitialising the pgbench schema when it is not avalable 
+
         String sql = """
             CREATE TABLE IF NOT EXISTS benchmark_run (
                 id SERIAL PRIMARY KEY,
@@ -285,21 +288,11 @@ public class ToolUtils {
         m = filePattern.matcher(cmd);
         String file = m.find() ? m.group(1) : null;
 
-        Commands = new ArrayList<>();
-        Commands.add("C:\\Program Files\\PostgreSQL\\16\\bin\\pgbench.exe");
-        if(file==null) Commands.addAll(List.of("--builtin="+builtin));
-        Commands.addAll(List.of("-M",mode));
-        if(file != null) Commands.addAll(List.of("-f",file));
-        Commands.addAll(List.of(
-                "-c", String.valueOf(clients),
-                "-T", String.valueOf(duration),
-                "-j", String.valueOf(threads),
-                "-p", "5433",
-                "-U", "postgres",
-                "pgbench"));
+        appendParamsToCommandString((file!=null),"--builtin="+builtin,mode,file,Integer.parseInt(clients),Integer.parseInt(duration),Integer.parseInt(threads));
     }
 
     public static void flushOldCommandParams(){
+
         Commands = null;
         Clients = 0;
         Jobs = 0;
