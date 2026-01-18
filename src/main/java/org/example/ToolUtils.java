@@ -9,6 +9,7 @@ import java.nio.file.Paths;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Scanner;
@@ -23,7 +24,6 @@ public class ToolUtils {
     static Scanner sc = new Scanner(System.in);
     public static String pgBenchOutput;
     public static void setBenchmarkParamValues(){
-
 
         System.out.println("Clients:");
         Clients = sc.nextInt();
@@ -103,9 +103,9 @@ public class ToolUtils {
                 "-c", String.valueOf(Clients),
                 "-T", String.valueOf(Time),
                 "-j", String.valueOf(Jobs),
-                "-p", "5432",
+                "-p", "5433",
                 "-U", "postgres",
-                "pgbenchdb"));
+                "pgbench"));
     }
 
     public static void readAndPrintOutputStream(Process process) throws IOException, InterruptedException {
@@ -177,18 +177,17 @@ public class ToolUtils {
         ps.executeUpdate();
     }
 
-    public static void savingResults() throws SQLException {
-        System.out.println("would you like to save the results (y/n)");
-        String saveDecision = sc.nextLine();
-        if(saveDecision.trim().equalsIgnoreCase("y")){
-            String pgbench_cmd = String.join(" ", Commands).replace("C:\\Program Files\\PostgreSQL\\16\\bin\\pgbench.exe","pgbench");
-            double tps = extractDouble(tpsPatern, pgBenchOutput);
-            double latency = extractDouble(latencyPattern, pgBenchOutput);
-            double connectTime = extractDouble(connectPattern, pgBenchOutput);
-            int transactions = extractInt(txPattern, pgBenchOutput);
-            insertingResultsIntoSQLTable(pgbench_cmd,transactions,latency,connectTime,tps);
-            System.out.println("Benchmark saved...");
-        }
+    public static void savingResults(boolean jit, boolean fsync, boolean sc) throws SQLException {
+        StringBuilder pgbench_cmd = new StringBuilder(String.join(" ", Commands).replace("C:\\Program Files\\PostgreSQL\\16\\bin\\pgbench.exe", "pgbench"));
+        if(jit) pgbench_cmd.append(" (jit)");
+        if(fsync) pgbench_cmd.append(" (fsync)");
+        if(sc) pgbench_cmd.append(" (sc)");
+        double tps = extractDouble(tpsPatern, pgBenchOutput);
+        double latency = extractDouble(latencyPattern, pgBenchOutput);
+        double connectTime = extractDouble(connectPattern, pgBenchOutput);
+        int transactions = extractInt(txPattern, pgBenchOutput);
+        insertingResultsIntoSQLTable(pgbench_cmd.toString(),transactions,latency,connectTime,tps);
+        System.out.println("\u001B[1;32m"+"Benchmark saved..."+ "\u001B[0m"+"\n");
     }
 
     public static void checkIfThreeResultsExistAndReplace(String cmd) throws SQLException {
@@ -254,8 +253,6 @@ public class ToolUtils {
         String selectedCommand;
         rs.beforeFirst();
 
-
-
         for(int i=0;i< selectedId;i++){
             rs.next();
         }
@@ -288,11 +285,15 @@ public class ToolUtils {
         m = filePattern.matcher(cmd);
         String file = m.find() ? m.group(1) : null;
 
+        Jit = cmd.contains("(jit)");
+        Fsync = cmd.contains("(fsync)");
+        Sc = cmd.contains("(sc)");
+
+        applyBmOptimizations(Jit,false,Sc,false,Fsync,false);
         appendParamsToCommandString((file!=null),"--builtin="+builtin,mode,file,Integer.parseInt(clients),Integer.parseInt(duration),Integer.parseInt(threads));
     }
 
     public static void flushOldCommandParams(){
-
         Commands = null;
         Clients = 0;
         Jobs = 0;
@@ -302,6 +303,9 @@ public class ToolUtils {
         WorkloadString = null;
         ProtocolString = null;
         ScriptPath = null;
+        Jit = null;
+        Sc = null;
+        Fsync = null;
     }
     public static void printResultsSummery() throws SQLException {
 
@@ -338,6 +342,55 @@ public class ToolUtils {
             );
         }
     }
-}
 
-// TODO: 11/01/2026 make all the helper functions to private
+    public static void applyBmOptimizations(boolean changeJIT,Boolean jitSwitch, boolean changeSC, Boolean scSwitch ,boolean changeFSYNC ,Boolean fsyncSwitch) {
+        try (Statement stmt = conn.createStatement()) {
+            if(changeJIT) {
+                stmt.execute("ALTER SYSTEM SET jit = '"+ convertToOnOff(jitSwitch)+"'");
+                System.out.println("\u001B[1;32m" + "jit = "+ convertToOnOff(jitSwitch)+" " + "\u001B[0m");
+            }
+            if (changeSC) {
+                stmt.execute("ALTER SYSTEM SET synchronous_commit = '"+ convertToOnOff(scSwitch)+"' ");
+                System.out.println("\u001B[1;32m" + "synchronous_commit = "+ convertToOnOff(scSwitch)+" " + "\u001B[0m");
+            }
+            if (changeFSYNC) {
+                stmt.execute("ALTER SYSTEM SET fsync = '"+convertToOnOff(fsyncSwitch)+"'");
+                System.out.println("\u001B[1;32m" + "fsync = "+ convertToOnOff(fsyncSwitch)+" " + "\u001B[0m");
+            }
+            stmt.execute("SELECT pg_reload_conf()");
+
+
+        } catch (SQLException e) {
+            System.err.println("Failed to update settings: " + e.getMessage());
+        }
+    }
+
+    private static String convertToOnOff(Boolean val){
+        if (val) return  "on";
+        else return "off";
+    }
+
+    public static void resetOptimisationsToDefaults() {
+        try (Statement stmt = conn.createStatement()) {
+            stmt.execute("ALTER SYSTEM RESET jit");
+            stmt.execute("ALTER SYSTEM RESET synchronous_commit");
+            stmt.execute("ALTER SYSTEM RESET fsync");
+            stmt.execute("SELECT pg_reload_conf()");
+
+            System.out.println("\u001B[1;34m" + "Settings reverted to original postgresql.conf defaults." + "\u001B[0m");
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+    }
+
+    public static void stabilisationBlock(){
+        try (Statement stmt = conn.createStatement()) {
+            stmt.execute("CHECKPOINT"); // This flushes dirty buffers to disk so the background writer is quiet
+            stmt.execute("VACUUM ANALYZE"); //This cleans up dead tuples and updates statistics for the query planner
+            stmt.execute("DISCARD ALL"); // This resets session state, drops temporary tables, and clears the plan cache
+
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+    }
+}

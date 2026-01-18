@@ -10,14 +10,47 @@ public class Operation {
     private String Workload;
     private String Protocol;
     private String ScriptPath;
+    private Boolean Jit;
+    private Boolean Fsync;
+    private Boolean Sc;
 
-    public Operation(int clients, int jobs, int time, String workload, String protocol, String scriptPath) {
+    public Operation() {
+    }
+
+    public Operation(int clients, int jobs, int time, String workload, String protocol, String scriptPath,Boolean jit,Boolean fsync, Boolean sc) {
         Clients = clients;
         Jobs = jobs;
         Time = time;
         Workload = workload;
         Protocol = protocol;
         ScriptPath = scriptPath;
+        Jit = jit;
+        Fsync = fsync;
+        Sc = sc;
+    }
+
+    public Boolean isJit() {
+        return Jit;
+    }
+
+    public void setJit(boolean jit) {
+        Jit = jit;
+    }
+
+    public Boolean isFsync() {
+        return Fsync;
+    }
+
+    public void setFsync(boolean fsync) {
+        Fsync = fsync;
+    }
+
+    public Boolean isSc() {
+        return Sc;
+    }
+
+    public void setSc(boolean sc) {
+        Sc = sc;
     }
 
     public int getClients() {

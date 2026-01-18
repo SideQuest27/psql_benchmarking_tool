@@ -1,9 +1,9 @@
 package org.example;
 
 import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.MapperFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
-import javax.tools.Tool;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
@@ -25,33 +25,44 @@ public class BatchProcessor
     public void setJsonFilePath(String jsonFilePath) {
         JsonFilePath = jsonFilePath;
     }
+    
     public Thread runBatchOperation(){
         Runnable backgroundTask = ()->{
-
             List<Operation> operations = extractValuesFromJSON();
 
             operations.forEach((op)->{
                 ToolUtils.appendParamsToCommandString((op.getScriptPath()!=null),"--builtin="+op.getWorkload(), op.getProtocol(),
                         op.getScriptPath(),op.getClients(),op.getTime(),op.getJobs());
 
+                ToolUtils.applyBmOptimizations((op.isJit()!= null), op.isJit(),(op.isSc()!=null),op.isSc(),(op.isFsync()!=null),op.isFsync());
+
                 ProcessBuilder processBuilder = new ProcessBuilder(Commands);
                 processBuilder.environment().put("PGPASSWORD", "12345");
-                processBuilder.redirectErrorStream();
+                processBuilder.redirectErrorStream(true);
+
                 try {
-                    for(int i = 0; i<2;i++) {
+                    for(int i = 0; i<6;i++) {
+                        boolean isWarmupRun = (i<3);
+                        ToolUtils.stabilisationBlock();
+                        if(isWarmupRun){
+                            System.out.println("\u001B[1;33m" + "Warmup run!" + "\u001B[0m"+"\n");
+                        }
                         Process process = processBuilder.start();
                         ToolUtils.readAndPrintOutputStream(process);
-                        // TODO: 16/01/2026 add the logic for checking for warmup runs and then saving the hot runs
+                        if (!isWarmupRun){
+                            ToolUtils.savingResults((op.isJit()!= null),(op.isSc()!=null),(op.isFsync()!=null));
+                        }
+                        Thread.sleep(10000); //I did this in order for the windows background indexing/caching to idle
                     }
                 } catch (Exception e) {
                     e.printStackTrace();
                 }
 
+                ToolUtils.resetOptimisationsToDefaults();
                 ToolUtils.flushOldCommandParams();
             });
-
-
         };
+
         Thread thread = new Thread(backgroundTask);
         thread.setDaemon(true);
         thread.start();
@@ -63,17 +74,16 @@ public class BatchProcessor
         List<Operation> operations = null;
         if (Files.isRegularFile(path) && path.toString().toLowerCase().endsWith(".json")) {
             ObjectMapper mapper = new ObjectMapper();
+            mapper.configure(MapperFeature.ACCEPT_CASE_INSENSITIVE_PROPERTIES,true);
             try {
                 operations = mapper.readValue(
                     new File(this.getJsonFilePath()),
-                    new TypeReference<List<Operation>>() {}
+                    new TypeReference<>() {}
                 );
-
             } catch (IOException e) {
                 e.printStackTrace();
             }
         }
         return operations;
     }
-
 }

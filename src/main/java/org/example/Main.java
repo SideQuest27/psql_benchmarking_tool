@@ -19,32 +19,38 @@ public class Main {
     public static String ScriptPath;
     public static List<String> Commands;
     public static Connection conn;
-
     public static Thread batchProcessorThread;
+
+    public static Boolean Jit;
+    public static Boolean Fsync;
+    public static Boolean Sc;
 
     // TODO: 10/01/2026 need to handle these exceptions and also need to add the port and host as an input and not fixed
     // TODO: 11/01/2026 Fix the bug with the double file printing
     // TODO: 13/01/2026 need to  make the port number and the db name dynamic values
+    // TODO: 17/01/2026 see if the code is slowing down the final benchmark of the first run 
+    // TODO: 17/01/2026 need to also add the fsync and synchronous commit
+    // TODO: 11/01/2026 make all the helper functions to private
     public static void main(String[] args) throws IOException, InterruptedException, SQLException {
 
         conn = DriverManager.getConnection(
-                "jdbc:postgresql://localhost:5432/pgbenchdb",
+                "jdbc:postgresql://localhost:5433/pgbench",
                 "postgres",
                 "12345"
         );
 
-        System.out.println("Would you like to run a batch benchmarking operation? (y/N)");
+        System.out.println("Would you like to run a batch benchmarking operation? (y/n)");
         String batchBenchmarkingDecision = sc.nextLine();
 
-        if(batchBenchmarkingDecision.equalsIgnoreCase("y")){
-            BatchProcessor batchProcessor = new BatchProcessor("C:\\Users\\nirav\\OneDrive\\Desktop\\batchOperation.json");
+        if(batchBenchmarkingDecision.trim().equalsIgnoreCase("y")){
+            BatchProcessor batchProcessor = new BatchProcessor("C:\\Users\\karan\\OneDrive\\Desktop\\batchOperation.json");
             batchProcessorThread =  batchProcessor.runBatchOperation();
         }
         else {
 
             System.out.println("Would you like to reuse existing pgbench commands? (y/n)");
             String reuseCommandDecesion = sc.nextLine();
-            if (reuseCommandDecesion.equalsIgnoreCase("y")) {
+            if (reuseCommandDecesion.trim().equalsIgnoreCase("y")) {
                 reusePreviousPgbenchCommands();
             } else {
                 setBenchmarkParamValues();
@@ -60,21 +66,30 @@ public class Main {
             do {
                 Process process = processBuilder.start();
                 readAndPrintOutputStream(process);
-                savingResults();
+
+                System.out.println("would you like to save the results (y/n)");
+                String saveDecision = sc.nextLine();
+                if(saveDecision.trim().equalsIgnoreCase("y")) {
+                    savingResults(Jit,Fsync,Sc);
+                }
                 System.out.println("Would you like to rerun the same benchmark? (y/n)");
                 String rerunDecesion = sc.nextLine();
-                if (!rerunDecesion.equalsIgnoreCase("y")) {
+                if (!rerunDecesion.trim().equalsIgnoreCase("y")) {
                     flushOldCommandParams();
                     break;
                 }
             } while (true);
         }
 
-        try {
-            batchProcessorThread.join(); // This line PAUSES the main thread until 't' is finished
-            System.out.println("Thread is done. Moving on!");
-        } catch (InterruptedException e) {
-            e.printStackTrace();
+        if (batchProcessorThread != null) {
+            try {
+                batchProcessorThread.join();
+                System.out.println("Batch thread is done.");
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+        }else {
+            resetOptimisationsToDefaults();
         }
 
         printResultsSummery();
