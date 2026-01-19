@@ -37,7 +37,7 @@ public class BatchProcessor
                 ToolUtils.applyBmOptimizations((op.isJit()!= null), op.isJit(),(op.isSc()!=null),op.isSc(),(op.isFsync()!=null),op.isFsync());
 
                 ProcessBuilder processBuilder = new ProcessBuilder(Commands);
-                processBuilder.environment().put("PGPASSWORD", "12345");
+                processBuilder.environment().put("PGPASSWORD",AppConfig.get("app.psql_password"));
                 processBuilder.redirectErrorStream(true);
 
                 try {
@@ -83,6 +83,7 @@ public class BatchProcessor
             } catch (IOException e) {
                 e.printStackTrace();
             }
+
         }
         return operations;
     }

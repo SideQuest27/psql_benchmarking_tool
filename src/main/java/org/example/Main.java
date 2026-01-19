@@ -34,30 +34,30 @@ public class Main {
     public static void main(String[] args) throws IOException, InterruptedException, SQLException {
 
         conn = DriverManager.getConnection(
-                "jdbc:postgresql://localhost:5433/pgbench",
-                "postgres",
-                "12345"
+                AppConfig.get("app.psql_url"),
+                AppConfig.get("app.psql_user"),
+                AppConfig.get("app.psql_password")
         );
 
         System.out.println("Would you like to run a batch benchmarking operation? (y/n)");
         String batchBenchmarkingDecision = sc.nextLine();
 
         if(batchBenchmarkingDecision.trim().equalsIgnoreCase("y")){
-            BatchProcessor batchProcessor = new BatchProcessor("C:\\Users\\karan\\OneDrive\\Desktop\\batchOperation.json");
+            BatchProcessor batchProcessor = new BatchProcessor(AppConfig.get("app_batch_workload_json_path"));
             batchProcessorThread =  batchProcessor.runBatchOperation();
         }
         else {
 
             System.out.println("Would you like to reuse existing pgbench commands? (y/n)");
-            String reuseCommandDecesion = sc.nextLine();
-            if (reuseCommandDecesion.trim().equalsIgnoreCase("y")) {
+            String reuseCommandDecision = sc.nextLine();
+            if (reuseCommandDecision.trim().equalsIgnoreCase("y")) {
                 reusePreviousPgbenchCommands();
             } else {
                 setBenchmarkParamValues();
             }
 
             ProcessBuilder processBuilder = new ProcessBuilder(Commands);
-            processBuilder.environment().put("PGPASSWORD", "12345");
+            processBuilder.environment().put("PGPASSWORD", AppConfig.get("app.psql_password"));
 
             initialiseTables();
 

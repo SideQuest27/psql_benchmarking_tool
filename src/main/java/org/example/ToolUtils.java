@@ -103,9 +103,9 @@ public class ToolUtils {
                 "-c", String.valueOf(Clients),
                 "-T", String.valueOf(Time),
                 "-j", String.valueOf(Jobs),
-                "-p", "5433",
-                "-U", "postgres",
-                "pgbench"));
+                "-p", AppConfig.get("app.psql_port"),
+                "-U", AppConfig.get("app.psql_user"),
+                AppConfig.get("app.psql_db_name")));
     }
 
     public static void readAndPrintOutputStream(Process process) throws IOException, InterruptedException {
@@ -385,6 +385,7 @@ public class ToolUtils {
 
     public static void stabilisationBlock(){
         try (Statement stmt = conn.createStatement()) {
+            System.out.println("\n"+"\u001B[35m"+"Stabilising the  benchmark environment..."+"\u001B[0m"+"\n");
             stmt.execute("CHECKPOINT"); // This flushes dirty buffers to disk so the background writer is quiet
             stmt.execute("VACUUM ANALYZE"); //This cleans up dead tuples and updates statistics for the query planner
             stmt.execute("DISCARD ALL"); // This resets session state, drops temporary tables, and clears the plan cache
