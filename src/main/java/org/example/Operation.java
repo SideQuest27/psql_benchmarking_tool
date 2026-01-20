@@ -13,11 +13,13 @@ public class Operation {
     private Boolean Jit;
     private Boolean Fsync;
     private Boolean Sc;
+    private Integer Port;
+    private String Host;
 
     public Operation() {
     }
 
-    public Operation(int clients, int jobs, int time, String workload, String protocol, String scriptPath,Boolean jit,Boolean fsync, Boolean sc) {
+    public Operation(int clients, int jobs, int time, String workload, String protocol, String scriptPath,Boolean jit,Boolean fsync, Boolean sc,int port,String host) {
         Clients = clients;
         Jobs = jobs;
         Time = time;
@@ -27,8 +29,13 @@ public class Operation {
         Jit = jit;
         Fsync = fsync;
         Sc = sc;
+        Port = port;
+        Host = host;
     }
 
+    public void setPort(int port) {
+        Port = port;
+    }
     public Boolean isJit() {
         return Jit;
     }
@@ -99,5 +106,43 @@ public class Operation {
 
     public void setScriptPath(String scriptPath) {
         ScriptPath = scriptPath;
+    }
+    public Boolean getJit() {
+        return Jit;
+    }
+
+    public void setJit(Boolean jit) {
+        Jit = jit;
+    }
+
+    public Boolean getFsync() {
+        return Fsync;
+    }
+
+    public void setFsync(Boolean fsync) {
+        Fsync = fsync;
+    }
+
+    public Boolean getSc() {
+        return Sc;
+    }
+
+    public void setSc(Boolean sc) {
+        Sc = sc;
+    }
+
+    public Integer getPort() {
+        return Port;
+    }
+    public void setPort(Integer port) {
+        Port = port;
+    }
+
+    public String getHost() {
+        return Host;
+    }
+
+    public void setHost(String host) {
+        Host = host;
     }
 }

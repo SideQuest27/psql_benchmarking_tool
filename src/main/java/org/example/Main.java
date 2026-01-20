@@ -20,17 +20,14 @@ public class Main {
     public static List<String> Commands;
     public static Connection conn;
     public static Thread batchProcessorThread;
-
     public static Boolean Jit;
     public static Boolean Fsync;
     public static Boolean Sc;
 
-    // TODO: 10/01/2026 need to handle these exceptions and also need to add the port and host as an input and not fixed
     // TODO: 11/01/2026 Fix the bug with the double file printing
     // TODO: 13/01/2026 need to  make the port number and the db name dynamic values
-    // TODO: 17/01/2026 see if the code is slowing down the final benchmark of the first run 
-    // TODO: 17/01/2026 need to also add the fsync and synchronous commit
-    // TODO: 11/01/2026 make all the helper functions to private
+    // TODO: 16/01/2026 need to add the functionality for auto initialising the pgbench schema when it is not avalable
+    // TODO: 20/01/2026 need to add host also as a variable
     public static void main(String[] args) throws IOException, InterruptedException, SQLException {
 
         conn = DriverManager.getConnection(
@@ -91,7 +88,6 @@ public class Main {
         }else {
             resetOptimisationsToDefaults();
         }
-
         printResultsSummery();
     }
 }

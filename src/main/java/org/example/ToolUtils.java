@@ -25,6 +25,8 @@ public class ToolUtils {
     public static String pgBenchOutput;
     public static void setBenchmarkParamValues(){
 
+        // TODO: 20/01/2026  need to add the port and optimisations as a user entry value
+
         System.out.println("Clients:");
         Clients = sc.nextInt();
 
@@ -85,7 +87,7 @@ public class ToolUtils {
                 System.out.println("Invalid input! enter again.");
             }
         }
-        appendParamsToCommandString((Workload == 4),WorkloadString,ProtocolString,ScriptPath,Clients,Time,Jobs);
+        appendParamsToCommandString((Workload == 4),WorkloadString,ProtocolString,ScriptPath,String.valueOf(Clients),String.valueOf(Time),String.valueOf(Jobs),null,null);
     }
 
     public static boolean checkForSqlScript(String scriptPath){
@@ -93,19 +95,23 @@ public class ToolUtils {
         return  (Files.isRegularFile(path) && path.toString().toLowerCase().endsWith(".sql"));
     }
 
-    public static void appendParamsToCommandString(boolean CustomWorkload,String WorkloadString, String ProtocolString,String ScriptPath,int Clients,int Time,int Jobs){
+    public static void appendParamsToCommandString(boolean CustomWorkload,String WorkloadString, String ProtocolString,String ScriptPath,String Clients,String Time,String Jobs,String Port,String Host){
+
+        String portString = (Port.equals("null")) ? AppConfig.get("app.psql_port") : Port;
+
         Commands = new ArrayList<>();
         Commands.add("C:\\Program Files\\PostgreSQL\\16\\bin\\pgbench.exe");
         if(!CustomWorkload) Commands.add(WorkloadString);
         Commands.addAll(List.of("-M",ProtocolString));
         if(CustomWorkload) Commands.addAll(List.of("-f",ScriptPath));
         Commands.addAll(List.of(
-                "-c", String.valueOf(Clients),
-                "-T", String.valueOf(Time),
-                "-j", String.valueOf(Jobs),
-                "-p", AppConfig.get("app.psql_port"),
-                "-U", AppConfig.get("app.psql_user"),
-                AppConfig.get("app.psql_db_name")));
+                "-c", Clients,
+                "-T", Time,
+                "-j", Jobs,
+                "-p", portString,
+                "-U", AppConfig.get("app.psql_user")));
+        if(Host != null) Commands.addAll(List.of("-h",Host));
+        Commands.add(AppConfig.get("app.psql_db_name"));
     }
 
     public static void readAndPrintOutputStream(Process process) throws IOException, InterruptedException {
@@ -131,7 +137,7 @@ public class ToolUtils {
 
     public static void initialiseTables() throws SQLException {
 
-        // TODO: 16/01/2026 need to add the functionality for autoinitialising the pgbench schema when it is not avalable 
+
 
         String sql = """
             CREATE TABLE IF NOT EXISTS benchmark_run (
@@ -282,15 +288,21 @@ public class ToolUtils {
         m = threadsPattern.matcher(cmd);
         String threads = m.find() ? m.group(1) : null;
 
+        m = portPattern.matcher(cmd);
+        String port = m.find() ? m.group(1) : null;
+
         m = filePattern.matcher(cmd);
         String file = m.find() ? m.group(1) : null;
+
+        m = hostPattern.matcher(cmd);
+        String host = m.find() ? m.group(1) : null;
 
         Jit = cmd.contains("(jit)");
         Fsync = cmd.contains("(fsync)");
         Sc = cmd.contains("(sc)");
 
         applyBmOptimizations(Jit,false,Sc,false,Fsync,false);
-        appendParamsToCommandString((file!=null),"--builtin="+builtin,mode,file,Integer.parseInt(clients),Integer.parseInt(duration),Integer.parseInt(threads));
+        appendParamsToCommandString((file!=null),"--builtin="+builtin,mode,file,clients,duration,threads,port,host);
     }
 
     public static void flushOldCommandParams(){
@@ -385,7 +397,7 @@ public class ToolUtils {
 
     public static void stabilisationBlock(){
         try (Statement stmt = conn.createStatement()) {
-            System.out.println("\n"+"\u001B[35m"+"Stabilising the  benchmark environment..."+"\u001B[0m"+"\n");
+            System.out.println("\n"+"\u001B[35m"+"Stabilising the benchmark environment..."+"\u001B[0m"+"\n");
             stmt.execute("CHECKPOINT"); // This flushes dirty buffers to disk so the background writer is quiet
             stmt.execute("VACUUM ANALYZE"); //This cleans up dead tuples and updates statistics for the query planner
             stmt.execute("DISCARD ALL"); // This resets session state, drops temporary tables, and clears the plan cache

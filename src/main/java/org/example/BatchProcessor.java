@@ -32,7 +32,7 @@ public class BatchProcessor
 
             operations.forEach((op)->{
                 ToolUtils.appendParamsToCommandString((op.getScriptPath()!=null),"--builtin="+op.getWorkload(), op.getProtocol(),
-                        op.getScriptPath(),op.getClients(),op.getTime(),op.getJobs());
+                        op.getScriptPath(),String.valueOf(op.getClients()),String.valueOf(op.getTime()),String.valueOf(op.getJobs()),String.valueOf(op.getPort()),op.getHost());
 
                 ToolUtils.applyBmOptimizations((op.isJit()!= null), op.isJit(),(op.isSc()!=null),op.isSc(),(op.isFsync()!=null),op.isFsync());
 

@@ -50,3 +50,6 @@ build/
 *.rar
 hs_err_pid*
 replay_pid*
+
+# Project
+src/main/resources/application.properties
