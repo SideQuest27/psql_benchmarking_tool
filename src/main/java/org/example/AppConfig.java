@@ -10,7 +10,7 @@ public class AppConfig {
     static {
         try (InputStream input = AppConfig.class.getClassLoader().getResourceAsStream("application.properties")) {
             if (input == null) {
-                System.out.println("Sorry, unable to find config.properties");
+                System.out.println("Sorry, unable to find application.properties");
             } else {
                 properties.load(input);
             }

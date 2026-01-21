@@ -1,0 +1,27 @@
+[
+  {
+      "Clients": 64,
+      "Jobs": 12,
+      "Time": 30,
+      "Workload": "simple-update",
+      "Protocol":"extended",
+      "Jit": false,
+      "Host": "192.168.0.8",
+      "Port": 6432
+  },
+  {
+      "Clients": 32,
+      "Jobs": 10,
+      "Time": 10,
+      "Workload":"tpcb-like",
+      "Protocol":"simple",
+      "Fsync": false
+  },
+  {
+      "Clients": 16,
+      "Jobs": 8,
+      "Time": 5,
+      "Workload":"select-only",
+      "Protocol":"simple"
+  }
+]

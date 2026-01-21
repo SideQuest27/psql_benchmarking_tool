@@ -25,10 +25,11 @@ public class Main {
     public static Boolean Sc;
 
     // TODO: 11/01/2026 Fix the bug with the double file printing
-    // TODO: 13/01/2026 need to  make the port number and the db name dynamic values
-    // TODO: 16/01/2026 need to add the functionality for auto initialising the pgbench schema when it is not avalable
-    // TODO: 20/01/2026 need to add host also as a variable
+    // TODO: 16/01/2026 need to add the functionality for auto initialising the pg-bench schema when it is not available
     public static void main(String[] args) throws IOException, InterruptedException, SQLException {
+
+
+        initialiseTables();
 
         conn = DriverManager.getConnection(
                 AppConfig.get("app.psql_url"),
@@ -45,6 +46,7 @@ public class Main {
         }
         else {
 
+
             System.out.println("Would you like to reuse existing pgbench commands? (y/n)");
             String reuseCommandDecision = sc.nextLine();
             if (reuseCommandDecision.trim().equalsIgnoreCase("y")) {
@@ -56,7 +58,6 @@ public class Main {
             ProcessBuilder processBuilder = new ProcessBuilder(Commands);
             processBuilder.environment().put("PGPASSWORD", AppConfig.get("app.psql_password"));
 
-            initialiseTables();
 
             processBuilder.redirectErrorStream(true);
 

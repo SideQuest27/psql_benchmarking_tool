@@ -6,13 +6,11 @@ import java.io.InputStreamReader;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
-import java.sql.SQLException;
-import java.sql.Statement;
+import java.sql.*;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Scanner;
+import java.util.concurrent.ConcurrentNavigableMap;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -100,7 +98,7 @@ public class ToolUtils {
         String portString = (Port.equals("null")) ? AppConfig.get("app.psql_port") : Port;
 
         Commands = new ArrayList<>();
-        Commands.add("C:\\Program Files\\PostgreSQL\\16\\bin\\pgbench.exe");
+        Commands.add(AppConfig.get("app.pgbench_url"));
         if(!CustomWorkload) Commands.add(WorkloadString);
         Commands.addAll(List.of("-M",ProtocolString));
         if(CustomWorkload) Commands.addAll(List.of("-f",ScriptPath));
@@ -137,7 +135,50 @@ public class ToolUtils {
 
     public static void initialiseTables() throws SQLException {
 
+        Connection conn = DriverManager.getConnection(
+                "jdbc:postgresql://localhost:"+AppConfig.get("app.psql_port")+"/postgres",
+                AppConfig.get("app.psql_user"),
+                AppConfig.get("app.psql_password"));
 
+        boolean exists;
+        String checkDbQuery = "SELECT 1 FROM pg_database WHERE datname = ?";
+        PreparedStatement ps = conn.prepareStatement(checkDbQuery);
+        ps.setString(1,AppConfig.get("app.psql_db_name"));
+        ResultSet rs = ps.executeQuery();
+        exists = rs.next();
+
+        if(!exists){
+            Statement stmt = conn.createStatement();
+            stmt.execute("CREATE DATABASE " + AppConfig.get("app.psql_db_name"));
+            System.out.println("Db created...");
+
+            try {
+                Commands = new ArrayList<>();
+                Commands.addAll(List.of(AppConfig.get("app.pgbench_url"),
+                        "-i",
+                        "-s",AppConfig.get("app.pgbench_scale_factor"),
+                        "-p", AppConfig.get("app.psql_port"),
+                        "-U", AppConfig.get("app.psql_user"),
+                        AppConfig.get("app.psql_db_name")));
+
+                ProcessBuilder processBuilder = new ProcessBuilder(Commands);
+                processBuilder.environment().put("PGPASSWORD", AppConfig.get("app.psql_password"));
+                processBuilder.redirectErrorStream(true);
+                Process process = processBuilder.start();
+                readAndPrintOutputStream(process);
+            } catch (Exception e) {
+                throw new RuntimeException(e);
+            } finally {
+                flushOldCommandParams();
+                conn.close();
+            }
+        }
+
+        Connection conn2 = DriverManager.getConnection(
+                AppConfig.get("app.psql_url"),
+                AppConfig.get("app.psql_user"),
+                AppConfig.get("app.psql_password")
+        );
 
         String sql = """
             CREATE TABLE IF NOT EXISTS benchmark_run (
@@ -150,7 +191,8 @@ public class ToolUtils {
                 run_time TIMESTAMP DEFAULT now()
             )
         """;
-        conn.createStatement().execute(sql);
+        conn2.createStatement().execute(sql);
+        conn2.close();
     }
 
     private static double extractDouble(Pattern p, String text) {
