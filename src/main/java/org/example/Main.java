@@ -53,7 +53,7 @@ public class Main {
         String batchBenchmarkingDecision = sc.nextLine();
 
         if(batchBenchmarkingDecision.trim().equalsIgnoreCase("y")){
-            BatchProcessor batchProcessor = new BatchProcessor(AppConfig.get("app_batch_workload_json_path"));
+            BatchProcessor batchProcessor = new BatchProcessor(AppConfig.get("app.batch_workload_json_path"));
             batchProcessorThread =  batchProcessor.runBatchOperation();
         }
         else {
