@@ -34,7 +34,7 @@ public class BatchProcessor
                 ToolUtils.appendParamsToCommandString((op.getScriptPath()!=null),"--builtin="+op.getWorkload(), op.getProtocol(),
                         op.getScriptPath(),String.valueOf(op.getClients()),String.valueOf(op.getTime()),String.valueOf(op.getJobs()),String.valueOf(op.getPort()),op.getHost());
 
-                ToolUtils.applyBmOptimizations((op.isJit()!= null), op.isJit(),(op.isSc()!=null),op.isSc(),(op.isFsync()!=null),op.isFsync());
+                ToolUtils.applyBmOptimizations((op.isJit()!= null), op.isJit(),(op.isSc()!=null),op.isSc(),(op.isFsync()!=null),op.isFsync(),op.getPlanCM());
 
                 ProcessBuilder processBuilder = new ProcessBuilder(Commands);
                 processBuilder.environment().put("PGPASSWORD",AppConfig.get("app.psql_password"));
@@ -50,7 +50,7 @@ public class BatchProcessor
                         Process process = processBuilder.start();
                         ToolUtils.readAndPrintOutputStream(process);
                         if (!isWarmupRun){
-                            ToolUtils.savingResults((op.isJit()!= null),(op.isSc()!=null),(op.isFsync()!=null));
+                            ToolUtils.savingResults((op.isJit()!= null),(op.isSc()!=null),(op.isFsync()!=null),((op.getPlanCM()!=null ? op.getPlanCM() : null)));
                         }
                         Thread.sleep(10000); //I did this in order for the windows background indexing/caching to idle
                     }

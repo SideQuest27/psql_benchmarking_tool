@@ -13,13 +13,14 @@ public class Operation {
     private Boolean Jit;
     private Boolean Fsync;
     private Boolean Sc;
+    private String PlanCM;
     private Integer Port;
     private String Host;
 
     public Operation() {
     }
 
-    public Operation(int clients, int jobs, int time, String workload, String protocol, String scriptPath,Boolean jit,Boolean fsync, Boolean sc,int port,String host) {
+    public Operation(int clients, int jobs, int time, String workload, String protocol, String scriptPath,Boolean jit,Boolean fsync, Boolean sc,String planCM,int port,String host) {
         Clients = clients;
         Jobs = jobs;
         Time = time;
@@ -28,11 +29,19 @@ public class Operation {
         ScriptPath = scriptPath;
         Jit = jit;
         Fsync = fsync;
+        PlanCM = planCM;
         Sc = sc;
         Port = port;
         Host = host;
     }
 
+    public String getPlanCM() {
+        return PlanCM;
+    }
+
+    public void setPlanCM(String planCM) {
+        PlanCM = planCM;
+    }
     public void setPort(int port) {
         Port = port;
     }

@@ -1,6 +1,7 @@
 package org.example;
 
 import java.io.IOException;
+import java.math.BigInteger;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.SQLException;
@@ -23,6 +24,7 @@ public class Main {
     public static Boolean Jit;
     public static Boolean Fsync;
     public static Boolean Sc;
+    public static String PlanCM;
 
     // TODO: 11/01/2026 Fix the bug with the double file printing
     // TODO: 16/01/2026 need to add the functionality for auto initialising the pg-bench schema when it is not available
@@ -68,7 +70,7 @@ public class Main {
                 System.out.println("would you like to save the results (y/n)");
                 String saveDecision = sc.nextLine();
                 if(saveDecision.trim().equalsIgnoreCase("y")) {
-                    savingResults(Jit,Fsync,Sc);
+                    savingResults(Jit,Fsync,Sc,PlanCM);
                 }
                 System.out.println("Would you like to rerun the same benchmark? (y/n)");
                 String rerunDecesion = sc.nextLine();

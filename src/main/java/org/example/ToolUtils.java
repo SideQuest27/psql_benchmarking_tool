@@ -225,11 +225,12 @@ public class ToolUtils {
         ps.executeUpdate();
     }
 
-    public static void savingResults(boolean jit, boolean fsync, boolean sc) throws SQLException {
+    public static void savingResults(boolean jit, boolean fsync, boolean sc, String planCM) throws SQLException {
         StringBuilder pgbench_cmd = new StringBuilder(String.join(" ", Commands).replace("C:\\Program Files\\PostgreSQL\\16\\bin\\pgbench.exe", "pgbench"));
         if(jit) pgbench_cmd.append(" (jit)");
         if(fsync) pgbench_cmd.append(" (fsync)");
         if(sc) pgbench_cmd.append(" (sc)");
+        if(planCM!=null) pgbench_cmd.append(" (planCM = "+planCM+ ")");
         double tps = extractDouble(tpsPatern, pgBenchOutput);
         double latency = extractDouble(latencyPattern, pgBenchOutput);
         double connectTime = extractDouble(connectPattern, pgBenchOutput);
@@ -339,11 +340,14 @@ public class ToolUtils {
         m = hostPattern.matcher(cmd);
         String host = m.find() ? m.group(1) : null;
 
+        m = planCacheModePattern.matcher(cmd);
+        PlanCM = m.find() ? m.group(1) : null;
+
         Jit = cmd.contains("(jit)");
         Fsync = cmd.contains("(fsync)");
         Sc = cmd.contains("(sc)");
 
-        applyBmOptimizations(Jit,false,Sc,false,Fsync,false);
+        applyBmOptimizations(Jit,false,Sc,false,Fsync,false,PlanCM);
         appendParamsToCommandString((file!=null),"--builtin="+builtin,mode,file,clients,duration,threads,port,host);
     }
 
@@ -360,6 +364,7 @@ public class ToolUtils {
         Jit = null;
         Sc = null;
         Fsync = null;
+        PlanCM = null;
     }
     public static void printResultsSummery() throws SQLException {
 
@@ -397,7 +402,7 @@ public class ToolUtils {
         }
     }
 
-    public static void applyBmOptimizations(boolean changeJIT,Boolean jitSwitch, boolean changeSC, Boolean scSwitch ,boolean changeFSYNC ,Boolean fsyncSwitch) {
+    public static void applyBmOptimizations(boolean changeJIT,Boolean jitSwitch, boolean changeSC, Boolean scSwitch ,boolean changeFSYNC ,Boolean fsyncSwitch,String planCM) {
         try (Statement stmt = conn.createStatement()) {
             if(changeJIT) {
                 stmt.execute("ALTER SYSTEM SET jit = '"+ convertToOnOff(jitSwitch)+"'");
@@ -411,6 +416,11 @@ public class ToolUtils {
                 stmt.execute("ALTER SYSTEM SET fsync = '"+convertToOnOff(fsyncSwitch)+"'");
                 System.out.println("\u001B[1;32m" + "fsync = "+ convertToOnOff(fsyncSwitch)+" " + "\u001B[0m");
             }
+            if(planCM!= null && ( planCM.equalsIgnoreCase("force_generic_plan")||planCM.equalsIgnoreCase("force_generic_plan"))){
+                stmt.execute("ALTER SYSTEM SET plan_cache_mode = '"+planCM+"'");
+                System.out.println("\u001B[1;32m" + "plan_cache_mode = "+ planCM +" " + "\u001B[0m");
+            }
+
             stmt.execute("SELECT pg_reload_conf()");
 
 
