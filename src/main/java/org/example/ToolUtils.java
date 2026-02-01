@@ -10,7 +10,6 @@ import java.sql.*;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Scanner;
-import java.util.concurrent.ConcurrentNavigableMap;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -416,7 +415,7 @@ public class ToolUtils {
                 stmt.execute("ALTER SYSTEM SET fsync = '"+convertToOnOff(fsyncSwitch)+"'");
                 System.out.println("\u001B[1;32m" + "fsync = "+ convertToOnOff(fsyncSwitch)+" " + "\u001B[0m");
             }
-            if(planCM!= null && ( planCM.equalsIgnoreCase("force_generic_plan")||planCM.equalsIgnoreCase("force_generic_plan"))){
+            if(planCM!= null && ( planCM.equalsIgnoreCase("force_custom_plan")||planCM.equalsIgnoreCase("force_generic_plan"))){
                 stmt.execute("ALTER SYSTEM SET plan_cache_mode = '"+planCM+"'");
                 System.out.println("\u001B[1;32m" + "plan_cache_mode = "+ planCM +" " + "\u001B[0m");
             }
