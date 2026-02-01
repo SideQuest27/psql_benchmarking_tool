@@ -225,11 +225,11 @@ public class ToolUtils {
         ps.executeUpdate();
     }
 
-    public static void savingResults(boolean jit, boolean fsync, boolean sc, String planCM) throws SQLException {
+    public static void savingResults(Boolean jit, Boolean fsync, Boolean sc, String planCM) throws SQLException {
         StringBuilder pgbench_cmd = new StringBuilder(String.join(" ", Commands).replace("C:\\Program Files\\PostgreSQL\\16\\bin\\pgbench.exe", "pgbench"));
-        if(jit) pgbench_cmd.append(" (jit)");
-        if(fsync) pgbench_cmd.append(" (fsync)");
-        if(sc) pgbench_cmd.append(" (sc)");
+        if(jit!= null && jit) pgbench_cmd.append(" (jit)");
+        if(fsync!= null && fsync) pgbench_cmd.append(" (fsync)");
+        if(sc!= null && sc) pgbench_cmd.append(" (sc)");
         if(planCM!=null) pgbench_cmd.append(" (planCM = "+planCM+ ")");
         double tps = extractDouble(tpsPatern, pgBenchOutput);
         double latency = extractDouble(latencyPattern, pgBenchOutput);
