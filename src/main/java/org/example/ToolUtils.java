@@ -94,7 +94,8 @@ public class ToolUtils {
 
     public static void appendParamsToCommandString(boolean CustomWorkload,String WorkloadString, String ProtocolString,String ScriptPath,String Clients,String Time,String Jobs,String Port,String Host){
 
-        String portString = (Port.equals("null")) ? AppConfig.get("app.psql_port") : Port;
+
+        String portString = (Port == null || Port.equals("null")) ? AppConfig.get("app.psql_port") : Port;
 
         Commands = new ArrayList<>();
         Commands.add(AppConfig.get("app.pgbench_url"));
