@@ -26,10 +26,20 @@ public class Main {
     public static Boolean Sc;
     public static String PlanCM;
 
+    public static String PgbenchPath;
+
     // TODO: 11/01/2026 Fix the bug with the double file printing
     // TODO: 16/01/2026 need to add the functionality for auto initialising the pg-bench schema when it is not available
     public static void main(String[] args) throws IOException, InterruptedException, SQLException {
 
+        String os = System.getProperty("os.name").toLowerCase();
+
+
+        if(os.contains("win")){
+            PgbenchPath = AppConfig.get("app.pgbench_url");  // TODO: 02/02/2026 this os check is kinda redundant need to find another way
+        } else {
+            PgbenchPath = "pgbench";
+        }
 
         initialiseTables();
 

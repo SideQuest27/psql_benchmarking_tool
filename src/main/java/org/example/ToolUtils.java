@@ -84,7 +84,7 @@ public class ToolUtils {
                 System.out.println("Invalid input! enter again.");
             }
         }
-        appendParamsToCommandString((Workload == 4),WorkloadString,ProtocolString,ScriptPath,String.valueOf(Clients),String.valueOf(Time),String.valueOf(Jobs),null,null);
+        appendParamsToCommandString((Workload == 4),WorkloadString,ProtocolString,ScriptPath,String.valueOf(Clients),String.valueOf(Time),String.valueOf(Jobs),false,null,null);
     }
 
     public static boolean checkForSqlScript(String scriptPath){
@@ -92,13 +92,12 @@ public class ToolUtils {
         return  (Files.isRegularFile(path) && path.toString().toLowerCase().endsWith(".sql"));
     }
 
-    public static void appendParamsToCommandString(boolean CustomWorkload,String WorkloadString, String ProtocolString,String ScriptPath,String Clients,String Time,String Jobs,String Port,String Host){
-
+    public static void appendParamsToCommandString(boolean CustomWorkload,String WorkloadString, String ProtocolString,String ScriptPath,String Clients,String Time,String Jobs,boolean ShortConn ,String Port,String Host){
 
         String portString = (Port == null || Port.equals("null")) ? AppConfig.get("app.psql_port") : Port;
 
         Commands = new ArrayList<>();
-        Commands.add(AppConfig.get("app.pgbench_url"));
+        Commands.add(PgbenchPath);
         if(!CustomWorkload) Commands.add(WorkloadString);
         Commands.addAll(List.of("-M",ProtocolString));
         if(CustomWorkload) Commands.addAll(List.of("-f",ScriptPath));
@@ -109,6 +108,8 @@ public class ToolUtils {
                 "-p", portString,
                 "-U", AppConfig.get("app.psql_user")));
         if(Host != null) Commands.addAll(List.of("-h",Host));
+        else Commands.addAll(List.of("-h","localhost"));
+        if(ShortConn) Commands.add("-C");
         Commands.add(AppConfig.get("app.psql_db_name"));
     }
 
@@ -135,6 +136,7 @@ public class ToolUtils {
 
     public static void initialiseTables() throws SQLException {
 
+        // TODO: 02/02/2026 need to do proper error handling here "Wipe the created db if there is an error in the init... (not sure if this is safe tho)"
         Connection conn = DriverManager.getConnection(
                 "jdbc:postgresql://localhost:"+AppConfig.get("app.psql_port")+"/postgres",
                 AppConfig.get("app.psql_user"),
@@ -195,11 +197,16 @@ public class ToolUtils {
         conn2.close();
     }
 
-    private static double extractDouble(Pattern p, String text) {
+    private static Double extractDouble(Pattern p, String text) {
         Matcher m = p.matcher(text);
-        if (!m.find())
-            throw new RuntimeException("Value not found: " + p);
-        return Double.parseDouble(m.group(1));
+        if (m.find()) {
+            try {
+                return Double.parseDouble(m.group(1));
+            } catch (NumberFormatException e) {
+                return null;
+            }
+        }
+        return null;
     }
 
     private static int extractInt(Pattern p, String text) {
@@ -233,9 +240,9 @@ public class ToolUtils {
         if(planCM!=null) pgbench_cmd.append(" (planCM = "+planCM+ ")");
         double tps = extractDouble(tpsPatern, pgBenchOutput);
         double latency = extractDouble(latencyPattern, pgBenchOutput);
-        double connectTime = extractDouble(connectPattern, pgBenchOutput);
+        Double connectTime = extractDouble(connectPattern, pgBenchOutput);
         int transactions = extractInt(txPattern, pgBenchOutput);
-        insertingResultsIntoSQLTable(pgbench_cmd.toString(),transactions,latency,connectTime,tps);
+        insertingResultsIntoSQLTable(pgbench_cmd.toString(),transactions,latency, Double.parseDouble(connectTime.toString()),tps);
         System.out.println("\u001B[1;32m"+"Benchmark saved..."+ "\u001B[0m"+"\n");
     }
 
@@ -340,6 +347,8 @@ public class ToolUtils {
         m = hostPattern.matcher(cmd);
         String host = m.find() ? m.group(1) : null;
 
+        boolean shortConn = cmd.contains("-C");
+
         m = planCacheModePattern.matcher(cmd);
         PlanCM = m.find() ? m.group(1) : null;
 
@@ -348,7 +357,7 @@ public class ToolUtils {
         Sc = cmd.contains("(sc)");
 
         applyBmOptimizations(Jit,false,Sc,false,Fsync,false,PlanCM);
-        appendParamsToCommandString((file!=null),"--builtin="+builtin,mode,file,clients,duration,threads,port,host);
+        appendParamsToCommandString((file!=null),"--builtin="+builtin,mode,file,clients,duration,threads,shortConn,port,host);
     }
 
     public static void flushOldCommandParams(){

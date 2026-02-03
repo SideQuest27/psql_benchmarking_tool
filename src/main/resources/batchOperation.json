@@ -1,87 +1,17 @@
 [
   {
-  "Clients": 64,
-  "Jobs": 12,
-  "Time": 30,
-  "Workload": "select-only",
-  "Protocol":"simple"
-},
-  {
     "Clients": 64,
     "Jobs": 12,
     "Time": 30,
-    "Workload": "select-only",
-    "Protocol":"extended"
+    "Workload": "simple-update",
+    "Protocol": "extended"
   },
   {
     "Clients": 64,
     "Jobs": 12,
     "Time": 30,
     "Workload": "simple-update",
-    "Protocol":"simple"
-  },
-  {
-    "Clients": 64,
-    "Jobs": 12,
-    "Time": 30,
-    "Workload": "simple-update",
-    "Protocol":"extended"
-  },
-  {
-    "Clients": 64,
-    "Jobs": 12,
-    "Time": 30,
-    "Workload": "simple-update",
-    "Protocol":"prepared"
-  },
-  {
-    "Clients": 64,
-    "Jobs": 12,
-    "Time": 30,
-    "Workload": "simple-update",
-    "Protocol":"prepared",
-    "PlanCM": "force_generic_plan"
-  },
-  {
-    "Clients": 64,
-    "Jobs": 12,
-    "Time": 30,
-    "Workload": "simple-update",
-    "Protocol":"prepared",
-    "PlanCM": "force_custom_plan"
-  },
-  {
-    "Clients": 64,
-    "Jobs": 12,
-    "Time": 30,
-    "Workload": "simple-update",
-    "Protocol":"extended",
+    "Protocol": "extended",
     "Port": 6432
-  },
-  {
-    "Clients": 64,
-    "Jobs": 12,
-    "Time": 30,
-    "Workload": "simple-update",
-    "Protocol":"extended",
-    "Jit": false
-  },
-  {
-    "Clients": 64,
-    "Jobs": 12,
-    "Time": 30,
-    "Workload": "simple-update",
-    "Protocol":"extended",
-    "Sc": false
-  },
-  {
-    "Clients": 64,
-    "Jobs": 12,
-    "Time": 30,
-    "Workload": "simple-update",
-    "Protocol":"extended",
-    "Sc": false,
-    "Fsync":false
   }
-
 ]

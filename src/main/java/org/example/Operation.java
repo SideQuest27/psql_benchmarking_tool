@@ -16,11 +16,12 @@ public class Operation {
     private String PlanCM;
     private Integer Port;
     private String Host;
+    private Boolean ShortConn;
 
     public Operation() {
     }
 
-    public Operation(int clients, int jobs, int time, String workload, String protocol, String scriptPath,Boolean jit,Boolean fsync, Boolean sc,String planCM,int port,String host) {
+    public Operation(int clients, int jobs, int time, String workload, String protocol, String scriptPath,Boolean jit,Boolean fsync, Boolean sc,String planCM,Boolean shortConn,int port,String host) {
         Clients = clients;
         Jobs = jobs;
         Time = time;
@@ -31,12 +32,21 @@ public class Operation {
         Fsync = fsync;
         PlanCM = planCM;
         Sc = sc;
+        ShortConn = shortConn;
         Port = port;
         Host = host;
     }
 
     public String getPlanCM() {
         return PlanCM;
+    }
+
+    public Boolean getShortConn() {
+        return ShortConn;
+    }
+
+    public void setShortConn(Boolean shortConn) {
+        ShortConn = shortConn;
     }
 
     public void setPlanCM(String planCM) {

@@ -39,9 +39,100 @@ Expected:
 - openjdk 17.x
 - javac 17.x
 
+### 🔧 Configure Java Path (if needed)
+
+If you have multiple Java versions installed or encounter `javac: command not found`, follow these steps:
+
+**Step 1: Check available Java versions**
+```bash
+sudo update-alternatives --list javac
+sudo update-alternatives --list java
+```
+
+Choose the first option (Java 17), then set the environment variables:
+```bash
+export JAVA_HOME=/usr/lib/jvm/java-17-openjdk-amd64
+export PATH=$JAVA_HOME/bin:$PATH
+```
+
+**Step 2: Verify (this MUST change)**
+```bash
+which java
+which javac
+javac --version
+java --version
+```
+
+Expected output:
+- `/usr/lib/jvm/java-17-openjdk-amd64/bin/java`
+- `/usr/lib/jvm/java-17-openjdk-amd64/bin/javac`
+- javac 17.x
+- openjdk 17.x
+
+**Step 3: Make it permanent (recommended)**
+
+Add this to the end of `~/.bashrc`:
+```bash
+echo 'export JAVA_HOME=/usr/lib/jvm/java-17-openjdk-amd64' >> ~/.bashrc
+echo 'export PATH=$JAVA_HOME/bin:$PATH' >> ~/.bashrc
+```
+
+Then reload your shell:
+```bash
+source ~/.bashrc
+```
+
 ---
 
-## 🐳 2. Install Docker
+## 🐘 2. Install PostgreSQL 16 Client (psql & pgbench)
+
+### Add PostgreSQL APT Repository
+
+```bash
+sudo apt update
+sudo apt install -y curl ca-certificates gnupg
+```
+
+Add the PostgreSQL GPG key:
+```bash
+curl -fsSL https://www.postgresql.org/media/keys/ACCC4CF8.asc \
+| sudo gpg --dearmor -o /usr/share/keyrings/postgresql.gpg
+```
+
+Add the PostgreSQL repository:
+```bash
+echo "deb [signed-by=/usr/share/keyrings/postgresql.gpg] \
+http://apt.postgresql.org/pub/repos/apt \
+$(lsb_release -cs)-pgdg main" \
+| sudo tee /etc/apt/sources.list.d/pgdg.list
+```
+
+### Install PostgreSQL 16 Client Tools
+
+```bash
+sudo apt update
+sudo apt install -y postgresql-16 postgresql-client-16
+```
+
+This installs:
+- `psql` - PostgreSQL interactive terminal
+- `pgbench` - PostgreSQL benchmarking tool
+
+Verify installation:
+```bash
+psql --version
+pgbench --version
+```
+
+Expected:
+```
+psql (PostgreSQL) 16.x
+pgbench (PostgreSQL) 16.x
+```
+
+---
+
+## 🐳 3. Install Docker
 
 ```bash
 sudo apt install -y docker.io
@@ -60,7 +151,7 @@ docker --version
 
 ---
 
-## 🐘 3. Run PostgreSQL 16 in Docker
+## 🐘 4. Run PostgreSQL 16 in Docker
 
 Run PostgreSQL once:
 ```bash
@@ -96,7 +187,7 @@ docker update --restart unless-stopped pg16
 
 ---
 
-## 🧪 4. Verify PostgreSQL Connectivity
+## 🧪 5. Verify PostgreSQL Connectivity
 
 ```bash
 psql -h localhost -p 15432 -U benchuser benchmark
@@ -121,7 +212,7 @@ Exit with:
 
 ---
 
-## 🛠️ 5. pgbench Notes (IMPORTANT)
+## 🛠️ 6. pgbench Notes (IMPORTANT)
 
 When PostgreSQL runs in Docker, pgbench **MUST** use TCP.
 That means always include `-h localhost`.
@@ -142,7 +233,7 @@ This applies to:
 
 ---
 
-## ⚙️ 6. application.properties
+## ⚙️ 7. application.properties
 
 Your file is supported, but paths must be Linux-compatible in Codespaces.
 
@@ -173,9 +264,9 @@ app.pgbench_command=pgbench
 
 ---
 
-## 📦 7. Build the Project
+## 📦 8. Build the Project
 
-From the project root:
+From the project root, compile the project with all dependencies:
 ```bash
 mvn clean compile
 ```
@@ -185,9 +276,11 @@ Expected:
 BUILD SUCCESS
 ```
 
+> **Note:** This step downloads all Maven dependencies and compiles your Java code. If you encounter `ClassNotFoundException` later, re-run this command.
+
 ---
 
-## ▶️ 8. Run the Application
+## ▶️ 9. Run the Application
 
 ```bash
 mvn exec:java -Dexec.mainClass="org.example.Main"
@@ -231,16 +324,16 @@ You forgot `-h localhost` in pgbench.
 
 ### ❌ Cannot run program pgbench
 
-Install pgbench on host:
-```bash
-sudo apt install -y postgresql-client
-```
+Make sure you completed **Section 2: Install PostgreSQL 16 Client**.
 
-Or ensure it exists in PATH.
+Or verify pgbench is in PATH:
+```bash
+which pgbench
+```
 
 ---
 
-## 🧹 9. Stop / Remove PostgreSQL (Optional)
+## 🧹 10. Stop / Remove PostgreSQL (Optional)
 
 Stop:
 ```bash
@@ -272,5 +365,3 @@ Your PostgreSQL benchmarking tool is now fully operational in:
 - GitHub Codespaces
 - Ubuntu servers
 - Remote CLI environments
-
-If you want next steps (Dockerizing the app, CI benchmarks, result visualization), just say the word 💪
