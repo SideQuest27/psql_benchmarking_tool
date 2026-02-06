@@ -16,8 +16,9 @@ You need:
 - Java 17
 - Maven
 - Docker
-- PostgreSQL 16 (via Docker)
-- pgbench (inside the container or host)
+- PostgreSQL 16 (via Docker - no separate installation needed)
+
+> **Note:** This guide uses PostgreSQL entirely within Docker. You do **not** need to install PostgreSQL or pgbench separately on your host system.
 
 ---
 
@@ -84,55 +85,7 @@ source ~/.bashrc
 
 ---
 
-## 🐘 2. Install PostgreSQL 16 Client (psql & pgbench)
-
-### Add PostgreSQL APT Repository
-
-```bash
-sudo apt update
-sudo apt install -y curl ca-certificates gnupg
-```
-
-Add the PostgreSQL GPG key:
-```bash
-curl -fsSL https://www.postgresql.org/media/keys/ACCC4CF8.asc \
-| sudo gpg --dearmor -o /usr/share/keyrings/postgresql.gpg
-```
-
-Add the PostgreSQL repository:
-```bash
-echo "deb [signed-by=/usr/share/keyrings/postgresql.gpg] \
-http://apt.postgresql.org/pub/repos/apt \
-$(lsb_release -cs)-pgdg main" \
-| sudo tee /etc/apt/sources.list.d/pgdg.list
-```
-
-### Install PostgreSQL 16 Client Tools
-
-```bash
-sudo apt update
-sudo apt install -y postgresql-16 postgresql-client-16
-```
-
-This installs:
-- `psql` - PostgreSQL interactive terminal
-- `pgbench` - PostgreSQL benchmarking tool
-
-Verify installation:
-```bash
-psql --version
-pgbench --version
-```
-
-Expected:
-```
-psql (PostgreSQL) 16.x
-pgbench (PostgreSQL) 16.x
-```
-
----
-
-## 🐳 3. Install Docker
+## 🐳 2. Install Docker
 
 ```bash
 sudo apt install -y docker.io
@@ -151,28 +104,24 @@ docker --version
 
 ---
 
-## 🐘 4. Run PostgreSQL 16 in Docker
+## 🐘 3. Run PostgreSQL 16 in Docker
 
-Run PostgreSQL once:
+Run PostgreSQL with host network mode:
 ```bash
-docker run -d \
-  --name pg16 \
-  -e POSTGRES_DB=benchmark \
-  -e POSTGRES_USER=benchuser \
-  -e POSTGRES_PASSWORD=benchpass \
-  -p 15432:5432 \
-  postgres:16
+sudo docker run --name pg16 --network host \
+  -e POSTGRES_PASSWORD=12345 \
+  -v pgdata:/var/lib/postgresql/data \
+  -d postgres:16
 ```
+
+> **Note:** Using `--network host` allows PostgreSQL to be accessible on `localhost:5432` directly.
 
 Verify it's running:
 ```bash
 docker ps
 ```
 
-You should see:
-```
-0.0.0.0:15432->5432/tcp
-```
+You should see the `pg16` container in the list.
 
 ### 🔁 Restarting the DB (if it stops)
 
@@ -187,20 +136,16 @@ docker update --restart unless-stopped pg16
 
 ---
 
-## 🧪 5. Verify PostgreSQL Connectivity
+## 🧪 4. Verify PostgreSQL Connectivity
 
+Connect to PostgreSQL using Docker exec:
 ```bash
-psql -h localhost -p 15432 -U benchuser benchmark
-```
-
-Password:
-```
-benchpass
+sudo docker exec -it pg16 psql -U postgres
 ```
 
 If you see:
 ```
-benchmark=#
+postgres=#
 ```
 
 You're connected.
@@ -212,61 +157,75 @@ Exit with:
 
 ---
 
-## 🛠️ 6. pgbench Notes (IMPORTANT)
+## 📥 5. Clone the Project
 
-When PostgreSQL runs in Docker, pgbench **MUST** use TCP.
-That means always include `-h localhost`.
-
-❌ **Wrong:**
+Clone the repository from GitHub:
 ```bash
-pgbench -p 15432 -U benchuser benchmark
+git clone https://github.com/SideQuest27/psql_benchmarking_tool.git
+cd psql_benchmarking_tool
 ```
-
-✅ **Correct:**
-```bash
-pgbench -h localhost -p 15432 -U benchuser benchmark
-```
-
-This applies to:
-- pgbench initialization (`-i`)
-- pgbench benchmark runs
 
 ---
 
-## ⚙️ 7. application.properties
+## 🛠️ 6. Setup pgbench Wrapper Script
 
-Your file is supported, but paths must be Linux-compatible in Codespaces.
+Since we're using PostgreSQL in Docker, create a wrapper script for pgbench:
 
-**Example (Docker / Linux):**
+```bash
+nano pgbench
+```
+
+Add the following content:
+```bash
+#!/bin/bash
+sudo docker exec -i pg16 pgbench "$@"
+```
+
+Save and exit (`Ctrl+X`, then `Y`, then `Enter`).
+
+Make it executable:
+```bash
+chmod +x pgbench
+```
+
+Get the full path (you'll need this for `application.properties`):
+```bash
+readlink -f pgbench
+```
+
+Copy the output path (e.g., `/home/username/psql_benchmarking_tool/pgbench`).
+
+---
+
+## ⚙️ 7. Configure application.properties
+
+Edit the `application.properties` file:
+```bash
+nano src/main/resources/application.properties
+```
+
+Update with these values:
 ```properties
 app.psql_host=localhost
-app.psql_port=15432
-app.psql_db_name=benchmark
-app.psql_user=benchuser
-app.psql_password=benchpass
-app.psql_url=jdbc:postgresql://localhost:15432/benchmark
+app.psql_port=5432
+app.psql_db_name=postgres
+app.psql_user=postgres
+app.psql_password=12345
+app.psql_url=jdbc:postgresql://localhost:5432/postgres
 
-# pgbench should be available in PATH
-app.pgbench_command=pgbench
+# Use the full path from the readlink command above
+app.pgbench_command=/home/username/psql_benchmarking_tool/pgbench
 
 app.pgbench_scale_factor=400
 ```
 
-⚠️ **Windows paths like this will NOT work in Codespaces:**
-```
-C:\Program Files\PostgreSQL\16\bin\pgbench.exe
-```
-
-**Use:**
-```properties
-app.pgbench_command=pgbench
-```
+> **Important:** Replace `/home/username/psql_benchmarking_tool/pgbench` with the actual path from the `readlink -f pgbench` command.
 
 ---
 
 ## 📦 8. Build the Project
 
-From the project root, compile the project with all dependencies:
+From the project root (`psql_benchmarking_tool`), compile the project with all dependencies:
 ```bash
 mvn clean compile
 ```
@@ -314,21 +273,38 @@ mvn exec:java -Dexec.mainClass="org.example.Main"
 ### ❌ password authentication failed for user
 
 Make sure:
-- Docker container is running
-- Username/password match Docker env vars
-- Port is 15432
+- Docker container is running: `docker ps`
+- Password is `12345`
+- Port is `5432`
+- User is `postgres`
 
-### ❌ No such file or directory (.s.PGSQL.xxxx)
+### ❌ Connection refused or Cannot connect to database
 
-You forgot `-h localhost` in pgbench.
+Check if the container is running:
+```bash
+docker ps
+```
+
+If not running, start it:
+```bash
+docker start pg16
+```
 
 ### ❌ Cannot run program pgbench
 
-Make sure you completed **Section 2: Install PostgreSQL 16 Client**.
+Make sure:
+1. You created the `pgbench` wrapper script (Section 6)
+2. The script is executable: `chmod +x pgbench`
+3. The path in `application.properties` matches the output of `readlink -f pgbench`
 
-Or verify pgbench is in PATH:
+Verify:
 ```bash
-which pgbench
+./pgbench --version
+```
+
+Expected:
+```
+pgbench (PostgreSQL) 16.x
 ```
 
 ---
@@ -340,9 +316,14 @@ Stop:
 docker stop pg16
 ```
 
-Remove:
+Remove (⚠️ This will delete all data):
 ```bash
 docker rm pg16
+```
+
+Remove the volume (⚠️ This will permanently delete all database data):
+```bash
+docker volume rm pgdata
 ```
 
 ---
@@ -352,9 +333,9 @@ docker rm pg16
 - ✔ Java 17
 - ✔ Maven
 - ✔ Docker
-- ✔ PostgreSQL 16 running on port 15432
-- ✔ pgbench uses `-h localhost`
-- ✔ Linux-compatible paths
+- ✔ PostgreSQL 16 running in Docker on port 5432
+- ✔ pgbench wrapper script created and executable
+- ✔ application.properties configured with correct paths
 - ✔ `mvn exec:java` works
 
 ---
@@ -365,3 +346,5 @@ Your PostgreSQL benchmarking tool is now fully operational in:
 - GitHub Codespaces
 - Ubuntu servers
 - Remote CLI environments
+
+If you want next steps (Dockerizing the app, CI benchmarks, result visualization), just say the word 💪
