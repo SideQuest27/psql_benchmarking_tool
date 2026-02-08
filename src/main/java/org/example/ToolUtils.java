@@ -97,7 +97,7 @@ public class ToolUtils {
         String portString = (Port == null || Port.equals("null")) ? AppConfig.get("app.psql_port") : Port;
 
         Commands = new ArrayList<>();
-        Commands.add(PgbenchPath);
+        Commands.add(AppConfig.get("app.pgbench_url"));
         if(!CustomWorkload) Commands.add(WorkloadString);
         Commands.addAll(List.of("-M",ProtocolString));
         if(CustomWorkload) Commands.addAll(List.of("-f",ScriptPath));
