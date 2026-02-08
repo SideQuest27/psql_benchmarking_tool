@@ -233,7 +233,7 @@ public class ToolUtils {
     }
 
     public static void savingResults(Boolean jit, Boolean fsync, Boolean sc, String planCM) throws SQLException {
-        StringBuilder pgbench_cmd = new StringBuilder(String.join(" ", Commands).replace("C:\\Program Files\\PostgreSQL\\16\\bin\\pgbench.exe", "pgbench"));
+        StringBuilder pgbench_cmd = new StringBuilder(String.join(" ", Commands).replace(AppConfig.get("app.pgbench_url"), "pgbench"));
         if(jit!= null && jit) pgbench_cmd.append(" (jit)");
         if(fsync!= null && fsync) pgbench_cmd.append(" (fsync)");
         if(sc!= null && sc) pgbench_cmd.append(" (sc)");
