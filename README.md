@@ -346,5 +346,3 @@ Your PostgreSQL benchmarking tool is now fully operational in:
 - GitHub Codespaces
 - Ubuntu servers
 - Remote CLI environments
-
-If you want next steps (Dockerizing the app, CI benchmarks, result visualization), just say the word 💪
