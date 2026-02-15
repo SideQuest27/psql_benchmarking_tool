@@ -9,9 +9,12 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.sql.SQLException;
+import java.util.ArrayList;
 import java.util.List;
 
 import static org.example.Main.Commands;
+import static org.example.Main.conn;
 
 public class BatchProcessor
 {
@@ -31,8 +34,30 @@ public class BatchProcessor
             List<Operation> operations = extractValuesFromJSON();
 
             operations.forEach((op)->{
+
+                String partitionMethod = op.getPartitionMethod();
+                Integer partitionSize = op.getPartitionSize();
+                ArrayList<String> additionalCmd = new ArrayList<>();
+                if (partitionMethod!= null) additionalCmd.addAll(List.of("--partition-method",partitionMethod));
+                if (partitionSize!= null) additionalCmd.addAll(List.of("--partitions",partitionSize.toString()));
+                if(!additionalCmd.isEmpty()){
+                    try {
+
+                        ToolUtils.checkAndRemoveTheOldTablesForPartitionDb(op);
+                        ToolUtils.initialiseTables(AppConfig.get("app.psql_db_name_partition"),additionalCmd.toArray(new String[0]));
+                        conn = ToolUtils.establishPsqlConnection(AppConfig.get("app.psql_url_partition"));
+                    } catch (SQLException e) {
+                        throw new RuntimeException(e);
+                    }
+
+                } else  conn = ToolUtils.establishPsqlConnection(AppConfig.get("app.psql_url"));
+
+                String db;
+                if(!additionalCmd.isEmpty()) db = AppConfig.get("app.psql_db_name_partition");
+                else db = AppConfig.get("app.psql_db_name");
+
                 ToolUtils.appendParamsToCommandString((op.getScriptPath()!=null),"--builtin="+op.getWorkload(), op.getProtocol(),
-                        op.getScriptPath(),String.valueOf(op.getClients()),String.valueOf(op.getTime()),String.valueOf(op.getJobs()),(op.getShortConn()!=null && op.getShortConn() == true),String.valueOf(op.getPort()),op.getHost());
+                        op.getScriptPath(),String.valueOf(op.getClients()),String.valueOf(op.getTime()),String.valueOf(op.getJobs()),(op.getShortConn()!=null && op.getShortConn() == true),String.valueOf(op.getPort()),op.getHost(),db);
 
                 ToolUtils.applyBmOptimizations((op.isJit()!= null), op.isJit(),(op.isSc()!=null),op.isSc(),(op.isFsync()!=null),op.isFsync(),op.getPlanCM());
 

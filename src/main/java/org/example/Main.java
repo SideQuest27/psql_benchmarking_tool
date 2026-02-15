@@ -30,13 +30,9 @@ public class Main {
     // TODO: 16/01/2026 need to add the functionality for auto initialising the pg-bench schema when it is not available
     public static void main(String[] args) throws IOException, InterruptedException, SQLException {
 
-        initialiseTables();
+        initialiseTables(AppConfig.get("app.psql_db_name"));
 
-        conn = DriverManager.getConnection(
-                AppConfig.get("app.psql_url"),
-                AppConfig.get("app.psql_user"),
-                AppConfig.get("app.psql_password")
-        );
+        conn =  establishPsqlConnection(AppConfig.get("app.psql_url"));
 
         System.out.println("Would you like to run a batch benchmarking operation? (y/n)");
         String batchBenchmarkingDecision = sc.nextLine();
@@ -46,7 +42,6 @@ public class Main {
             batchProcessorThread =  batchProcessor.runBatchOperation();
         }
         else {
-
 
             System.out.println("Would you like to reuse existing pgbench commands? (y/n)");
             String reuseCommandDecision = sc.nextLine();
@@ -90,6 +85,7 @@ public class Main {
         }else {
             resetOptimisationsToDefaults();
         }
+
         printResultsSummery();
     }
 }

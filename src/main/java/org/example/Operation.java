@@ -1,8 +1,5 @@
 package org.example;
 
-import java.sql.Connection;
-import java.util.List;
-
 public class Operation {
     private int Clients;
     private int Jobs;
@@ -18,10 +15,29 @@ public class Operation {
     private String Host;
     private Boolean ShortConn;
 
+    private Integer PartitionSize;
+    private String PartitionMethod;  // TODO: 11/02/2026 continue from here
+
+    public Integer getPartitionSize() {
+        return PartitionSize;
+    }
+
+    public void setPartitionSize(Integer partitionSize) {
+        PartitionSize = partitionSize;
+    }
+
+    public String getPartitionMethod() {
+        return PartitionMethod;
+    }
+
+    public void setPartitionMethod(String partitionMethod) {
+        PartitionMethod = partitionMethod;
+    }
+
     public Operation() {
     }
 
-    public Operation(int clients, int jobs, int time, String workload, String protocol, String scriptPath,Boolean jit,Boolean fsync, Boolean sc,String planCM,Boolean shortConn,int port,String host) {
+    public Operation(int clients, int jobs, int time, String workload, String protocol, String scriptPath,Boolean jit,Boolean fsync, Boolean sc,String planCM,Boolean shortConn,int port,String host, Integer partitionSize, String partitionMethod) {
         Clients = clients;
         Jobs = jobs;
         Time = time;
@@ -35,6 +51,8 @@ public class Operation {
         ShortConn = shortConn;
         Port = port;
         Host = host;
+        PartitionSize = partitionSize;
+        PartitionMethod = partitionMethod;
     }
 
     public String getPlanCM() {
