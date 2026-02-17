@@ -1,9 +1,7 @@
 package org.example;
 
 import java.io.IOException;
-import java.math.BigInteger;
 import java.sql.Connection;
-import java.sql.DriverManager;
 import java.sql.SQLException;
 import java.util.List;
 
@@ -25,20 +23,23 @@ public class Main {
     public static Boolean Fsync;
     public static Boolean Sc;
     public static String PlanCM;
+    public static BatchProcessor batchProcessor;
 
     // TODO: 11/01/2026 Fix the bug with the double file printing
-    // TODO: 16/01/2026 need to add the functionality for auto initialising the pg-bench schema when it is not available
+    // TODO: 17/02/2026  need to add tags for the pgbench_partition commands like (partition size ect..)
     public static void main(String[] args) throws IOException, InterruptedException, SQLException {
+
+        System.out.println(AppArt.art);
 
         initialiseTables(AppConfig.get("app.psql_db_name"));
 
-        conn =  establishPsqlConnection(AppConfig.get("app.psql_url"));
+        conn =  establishPsqlConnection(AppConfig.get("app.psql_url"), true);
 
         System.out.println("Would you like to run a batch benchmarking operation? (y/n)");
         String batchBenchmarkingDecision = sc.nextLine();
 
         if(batchBenchmarkingDecision.trim().equalsIgnoreCase("y")){
-            BatchProcessor batchProcessor = new BatchProcessor(AppConfig.get("app.batch_workload_json_path"));
+            batchProcessor = new BatchProcessor(AppConfig.get("app.batch_workload_json_path"));
             batchProcessorThread =  batchProcessor.runBatchOperation();
         }
         else {
@@ -64,7 +65,8 @@ public class Main {
                 System.out.println("would you like to save the results (y/n)");
                 String saveDecision = sc.nextLine();
                 if(saveDecision.trim().equalsIgnoreCase("y")) {
-                    savingResults(Jit,Fsync,Sc,PlanCM);
+                    // Interactive runs are never marked as warmup runs.
+                    savingResults(Jit,Fsync,Sc,PlanCM,false);
                 }
                 System.out.println("Would you like to rerun the same benchmark? (y/n)");
                 String rerunDecesion = sc.nextLine();

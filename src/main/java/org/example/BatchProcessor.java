@@ -15,10 +15,12 @@ import java.util.List;
 
 import static org.example.Main.Commands;
 import static org.example.Main.conn;
+import static org.example.ToolUtils.establishPsqlConnection;
 
 public class BatchProcessor
 {
     private String JsonFilePath;
+    private Operation currentOperation;
     public BatchProcessor(String jsonFilePath) {
         JsonFilePath = jsonFilePath;
     }
@@ -28,13 +30,21 @@ public class BatchProcessor
     public void setJsonFilePath(String jsonFilePath) {
         JsonFilePath = jsonFilePath;
     }
-    
+
+    public Operation getCurrentOperation() {
+        return currentOperation;
+    }
+
+    public void setCurrentOperation(Operation currentOperation) {
+        this.currentOperation = currentOperation;
+    }
+
     public Thread runBatchOperation(){
         Runnable backgroundTask = ()->{
             List<Operation> operations = extractValuesFromJSON();
 
             operations.forEach((op)->{
-
+                currentOperation = op;
                 String partitionMethod = op.getPartitionMethod();
                 Integer partitionSize = op.getPartitionSize();
                 ArrayList<String> additionalCmd = new ArrayList<>();
@@ -42,29 +52,26 @@ public class BatchProcessor
                 if (partitionSize!= null) additionalCmd.addAll(List.of("--partitions",partitionSize.toString()));
                 if(!additionalCmd.isEmpty()){
                     try {
-
-                        ToolUtils.checkAndRemoveTheOldTablesForPartitionDb(op);
                         ToolUtils.initialiseTables(AppConfig.get("app.psql_db_name_partition"),additionalCmd.toArray(new String[0]));
-                        conn = ToolUtils.establishPsqlConnection(AppConfig.get("app.psql_url_partition"));
+                        conn = ToolUtils.establishPsqlConnection(AppConfig.get("app.psql_url_partition"),true);
                     } catch (SQLException e) {
                         throw new RuntimeException(e);
                     }
-
-                } else  conn = ToolUtils.establishPsqlConnection(AppConfig.get("app.psql_url"));
+                } else conn = ToolUtils.establishPsqlConnection(AppConfig.get("app.psql_url"),true);
 
                 String db;
                 if(!additionalCmd.isEmpty()) db = AppConfig.get("app.psql_db_name_partition");
                 else db = AppConfig.get("app.psql_db_name");
 
                 ToolUtils.appendParamsToCommandString((op.getScriptPath()!=null),"--builtin="+op.getWorkload(), op.getProtocol(),
-                        op.getScriptPath(),String.valueOf(op.getClients()),String.valueOf(op.getTime()),String.valueOf(op.getJobs()),(op.getShortConn()!=null && op.getShortConn() == true),String.valueOf(op.getPort()),op.getHost(),db);
+                        op.getScriptPath(),String.valueOf(op.getClients()),String.valueOf(op.getTime()),String.valueOf(op.getJobs()),
+                        (op.getShortConn()!=null && op.getShortConn() == true),String.valueOf(op.getPort()),op.getHost(),db);  // TODO: 16/02/2026  this is bad code pass op as the param to this method
 
                 ToolUtils.applyBmOptimizations((op.isJit()!= null), op.isJit(),(op.isSc()!=null),op.isSc(),(op.isFsync()!=null),op.isFsync(),op.getPlanCM());
 
                 ProcessBuilder processBuilder = new ProcessBuilder(Commands);
                 processBuilder.environment().put("PGPASSWORD",AppConfig.get("app.psql_password"));
                 processBuilder.redirectErrorStream(true);
-
                 try {
                     for(int i = 0; i<6;i++) {
                         boolean isWarmupRun = (i<3);
@@ -74,15 +81,13 @@ public class BatchProcessor
                         }
                         Process process = processBuilder.start();
                         ToolUtils.readAndPrintOutputStream(process);
-                        if (!isWarmupRun){
-                            ToolUtils.savingResults((op.isJit()!= null),(op.isSc()!=null),(op.isFsync()!=null),((op.getPlanCM()!=null ? op.getPlanCM() : null)));
-                        }
+                        ToolUtils.savingResults((op.isJit()!= null),(op.isSc()!=null),(op.isFsync()!=null),((op.getPlanCM()!=null ? op.getPlanCM() : null)), isWarmupRun);
                         Thread.sleep(10000); //I did this in order for the windows background indexing/caching to idle
+
                     }
                 } catch (Exception e) {
                     e.printStackTrace();
                 }
-
                 ToolUtils.resetOptimisationsToDefaults();
                 ToolUtils.flushOldCommandParams();
             });

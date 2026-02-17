@@ -24,8 +24,4 @@ public class AppConfig {
         return properties.getProperty(key);
     }
 
-    // Optional: Helper for numeric values
-    public static int getInt(String key) {
-        return Integer.parseInt(properties.getProperty(key));
-    }
 }

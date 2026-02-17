@@ -3,6 +3,7 @@ package org.example;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.net.ConnectException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -135,16 +136,23 @@ public class ToolUtils {
         System.out.println(pgBenchOutput);
     }
 
-    public static void initialiseTables(String DbName,String... additionalCommands ) throws SQLException {
+    public static void initialiseTables(String DbName,String... additionalCommands) throws SQLException {
 
         // TODO: 02/02/2026 need to do proper error handling here "Wipe the created db if there is an error in the init... (not sure if this is safe tho)"
-        conn =  establishPsqlConnection("jdbc:postgresql://localhost:"+AppConfig.get("app.psql_port")+"/postgres");
+        conn =  establishPsqlConnection("jdbc:postgresql://localhost:"+AppConfig.get("app.psql_port")+"/postgres",true);
 
         boolean exists;
         String checkDbQuery = "SELECT 1 FROM pg_database WHERE datname = ?";
         PreparedStatement ps = conn.prepareStatement(checkDbQuery);
         ps.setString(1,DbName);
         ResultSet rs = ps.executeQuery();
+        exists = rs.next();
+
+        if (batchProcessor != null && exists){
+            checkAndRemoveTheOldTablesForPartitionDb(batchProcessor.getCurrentOperation());
+        }
+
+        rs = ps.executeQuery();
         exists = rs.next();
 
         if(!exists){
@@ -178,7 +186,7 @@ public class ToolUtils {
         }
 
         if(DbName.equalsIgnoreCase(AppConfig.get("app.psql_db_name"))){
-            conn = establishPsqlConnection(AppConfig.get("app.psql_url"));
+            conn = establishPsqlConnection(AppConfig.get("app.psql_url"),true);
 
             String sql = """
             CREATE TABLE IF NOT EXISTS benchmark_run (
@@ -188,6 +196,7 @@ public class ToolUtils {
                 latency DOUBLE PRECISION,
                 connect_time DOUBLE PRECISION,
                 tps DOUBLE PRECISION,
+                warmup_run BOOLEAN NOT NULL DEFAULT FALSE,
                 run_time TIMESTAMP DEFAULT now()
             )
         """;
@@ -216,14 +225,13 @@ public class ToolUtils {
         return Integer.parseInt(m.group(1));
     }
 
-    public static void insertingResultsIntoSQLTable(String pgbench_cmd,int transactions,double latency,double connectionTime,double tps) throws SQLException {
+    public static void insertingResultsIntoSQLTable(String pgbench_cmd,int transactions,double latency,double connectionTime,double tps, boolean warmupRun) throws SQLException {
 
-        Connection connection = establishPsqlConnection(AppConfig.get("app.psql_url"));
+        Connection connection = establishPsqlConnection(AppConfig.get("app.psql_url"),false);
 
-        checkIfThreeResultsExistAndReplace(pgbench_cmd);
         String insert = """
-            INSERT INTO benchmark_run (pgbench_cmd,transactions_processed, latency, connect_time, tps)
-            VALUES (?, ?, ?, ?, ?)
+            INSERT INTO benchmark_run (pgbench_cmd,transactions_processed, latency, connect_time, tps, warmup_run)
+            VALUES (?, ?, ?, ?, ?, ?)
             """;
 
         PreparedStatement ps = connection.prepareStatement(insert);
@@ -232,13 +240,14 @@ public class ToolUtils {
         ps.setDouble(3, latency);
         ps.setDouble(4, connectionTime);
         ps.setDouble(5, tps);
+        ps.setBoolean(6, warmupRun);
         ps.executeUpdate();
 
 
         connection.close();
     }
 
-    public static void savingResults(Boolean jit, Boolean fsync, Boolean sc, String planCM) throws SQLException {
+    public static void savingResults(Boolean jit, Boolean fsync, Boolean sc, String planCM, boolean warmupRun) throws SQLException {
 
         StringBuilder pgbench_cmd = new StringBuilder(String.join(" ", Commands).replace(AppConfig.get("app.pgbench_url"), "pgbench"));
         if(jit!= null && jit) pgbench_cmd.append(" (jit)");
@@ -249,43 +258,8 @@ public class ToolUtils {
         double latency = extractDouble(latencyPattern, pgBenchOutput);
         Double connectTime = extractDouble(connectPattern, pgBenchOutput);
         int transactions = extractInt(txPattern, pgBenchOutput);
-        insertingResultsIntoSQLTable(pgbench_cmd.toString(),transactions,latency, Double.parseDouble(connectTime.toString()),tps);
+        insertingResultsIntoSQLTable(pgbench_cmd.toString(),transactions,latency, Double.parseDouble(connectTime.toString()),tps,warmupRun);
         System.out.println("\u001B[1;32m"+"Benchmark saved..."+ "\u001B[0m"+"\n");
-    }
-
-    public static void checkIfThreeResultsExistAndReplace(String cmd) throws SQLException {
-
-        Connection connection = establishPsqlConnection(AppConfig.get("app.psql_url"));
-
-        String sql = """ 
-                SELECT COUNT(*) FROM benchmark_run WHERE pgbench_cmd = ?
-                """;
-        PreparedStatement ps = connection.prepareStatement(sql);
-        ps.setString(1,cmd);
-        ResultSet rs = ps.executeQuery();
-        rs.next();
-        int resultSize =  rs.getInt(1);
-
-        if(resultSize >= 3){
-            PreparedStatement ps2 = connection.prepareStatement(
-                    """
-                    DELETE FROM benchmark_run
-                    WHERE id = (
-                        SELECT id
-                        FROM benchmark_run
-                        WHERE pgbench_cmd = ?
-                        ORDER BY run_time ASC
-                        LIMIT 1
-                    )
-                    """
-            );
-            ps2.setString(1, cmd);
-            ps2.executeUpdate();
-            System.out.println("Oldest Benchmark Record replaced!");
-            rs.close();
-            ps.close();
-            ps2.close();
-        }
     }
 
     public static void  reusePreviousPgbenchCommands() throws SQLException {
@@ -399,6 +373,8 @@ public class ToolUtils {
         final String PURPLE = "\u001B[35m";
         final String RED    = "\u001B[31m";
 
+        Connection connection = ToolUtils.establishPsqlConnection(AppConfig.get("app.psql_url"),false);
+
         String sql = """
                 SELECT
                     pgbench_cmd,
@@ -410,7 +386,7 @@ public class ToolUtils {
                 FROM benchmark_run
                 GROUP BY pgbench_cmd;
                 """;
-        PreparedStatement ps = conn.prepareStatement(sql);
+        PreparedStatement ps = connection.prepareStatement(sql);
         ResultSet rs = ps.executeQuery();
 
         while(rs.next()){
@@ -423,6 +399,8 @@ public class ToolUtils {
                     RED    + "Avg Connect: " + rs.getDouble(6) + RESET
             );
         }
+
+        connection.close();
     }
 
     public static void applyBmOptimizations(boolean changeJIT,Boolean jitSwitch, boolean changeSC, Boolean scSwitch ,boolean changeFSYNC ,Boolean fsyncSwitch,String planCM) {
@@ -470,7 +448,9 @@ public class ToolUtils {
         }
     }
 
-    public static Connection establishPsqlConnection(String dbUrl){
+    public static Connection establishPsqlConnection(String dbUrl, boolean closeGlobalConnection){
+
+        if (closeGlobalConnection) closeGlobalConnection();
 
         Connection connection = null;
         try {
@@ -500,36 +480,67 @@ public class ToolUtils {
     }
 
     public static void checkAndRemoveTheOldTablesForPartitionDb(Operation operation) throws SQLException {
-        Connection connection1 =  establishPsqlConnection(AppConfig.get("app.psql_url_partition"));
-
-        try {
-
-            String sql = """
-                    SELECT count(*) AS partition_count
-                    FROM pg_inherits
-                    WHERE inhparent = 'pgbench_accounts'::regclass;""";
-
-            PreparedStatement preparedStatement = connection1.prepareStatement(sql);
-            ResultSet rs = preparedStatement.executeQuery();
-
-            rs.next();
-            int partitionCount = rs.getInt(1);
-            connection1.close();
+        if(operation!=null) {
 
 
-            if (partitionCount != operation.getPartitionSize()) {
-                Connection connection2 =  establishPsqlConnection("jdbc:postgresql://localhost:"+AppConfig.get("app.psql_port")+"/postgres");
-                sql = "DROP DATABASE " + AppConfig.get("app.psql_db_name_partition") + ";";
+            Connection connection1 = establishPsqlConnection(AppConfig.get("app.psql_url_partition"),false);
+            try {
+                // To check partition count
+                String sql = """
+                        SELECT count(*) AS partition_count
+                        FROM pg_inherits
+                        WHERE inhparent = 'pgbench_accounts'::regclass;""";
 
-                preparedStatement = connection2.prepareStatement(sql);
-                preparedStatement.execute();
-                connection2.close();
-                System.out.println("Dropped old table------");
+                PreparedStatement preparedStatement = connection1.prepareStatement(sql);
+                ResultSet rs = preparedStatement.executeQuery();
+
+                rs.next();
+                int partitionCount = rs.getInt(1);
+
+
+                // TODO: 16/02/2026 check partition method
+
+                sql = """
+                        SELECT
+                            p.partstrat,
+                            pg_get_partkeydef(c.oid) AS partition_definition
+                        FROM pg_partitioned_table p
+                        JOIN pg_class c ON c.oid = p.partrelid
+                        WHERE c.relname = 'pgbench_accounts';         
+                        """;
+                preparedStatement = connection1.prepareStatement(sql);
+                rs = preparedStatement.executeQuery();
+
+                rs.next();
+                String partitionStrat = rs.getString(1);
+
+                connection1.close();
+
+                if ((partitionCount != operation.getPartitionSize()) || (!partitionStrat.equals(String.valueOf(operation.getPartitionMethod().toLowerCase().charAt(0))))) {
+
+                    Connection connection2 = establishPsqlConnection("jdbc:postgresql://localhost:" + AppConfig.get("app.psql_port") + "/postgres",false);
+                    sql = "DROP DATABASE " + AppConfig.get("app.psql_db_name_partition") + ";";
+
+                    preparedStatement = connection2.prepareStatement(sql);
+                    preparedStatement.execute();
+                    connection2.close();
+                    System.out.println("Dropped DB...");
+                }
+            } catch (SQLException e) {
+                throw new RuntimeException("Problem with checking and dropping table: " + e.getMessage());
             }
-
-        } catch (SQLException e){
-            throw new RuntimeException("Problem with checking and dropping table: "+e.getMessage());
         }
     }
+
+    public static void closeGlobalConnection(){
+        try {
+            if (conn != null && !conn.isClosed()) {
+                conn.close();
+            }
+        } catch (SQLException e) {
+            throw new RuntimeException("Problem closing global connection: "+e);
+        }
+    }
+
 }
 
