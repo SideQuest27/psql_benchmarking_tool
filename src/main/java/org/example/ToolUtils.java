@@ -1,5 +1,8 @@
 package org.example;
 
+import com.sun.nio.sctp.AbstractNotificationHandler;
+import net.bytebuddy.implementation.bytecode.Throw;
+
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
@@ -148,8 +151,11 @@ public class ToolUtils {
         ResultSet rs = ps.executeQuery();
         exists = rs.next();
 
-        if (batchProcessor != null && exists){
-            checkAndRemoveTheOldTablesForPartitionDb(batchProcessor.getCurrentOperation());
+        if(additionalCommands.length != 0){
+            if (batchProcessor != null && exists){
+                checkAndRemoveTheOldTablesForPartitionDb(batchProcessor.getCurrentOperation());
+            }
+            else checkAndRemoveTheOldTablesForPartitionDb(new Operation(0,0,0,null,null,null,null,null,null,null,null,0,null,Integer.parseInt(additionalCommands[1]),additionalCommands[3]));
         }
 
         rs = ps.executeQuery();
@@ -158,7 +164,7 @@ public class ToolUtils {
         if(!exists){
             Statement stmt = conn.createStatement();
             stmt.execute("CREATE DATABASE " + DbName);
-            System.out.println("Db created...");
+            System.out.println("DB created...");
 
             try {
                 Commands = new ArrayList<>();
@@ -247,13 +253,15 @@ public class ToolUtils {
         connection.close();
     }
 
-    public static void savingResults(Boolean jit, Boolean fsync, Boolean sc, String planCM, boolean warmupRun) throws SQLException {
+    public static void savingResults(Boolean jit, Boolean fsync, Boolean sc, String planCM, boolean warmupRun, String partitionMethod, Integer partitionCount) throws SQLException {
 
         StringBuilder pgbench_cmd = new StringBuilder(String.join(" ", Commands).replace(AppConfig.get("app.pgbench_url"), "pgbench"));
         if(jit!= null && jit) pgbench_cmd.append(" (jit)");
         if(fsync!= null && fsync) pgbench_cmd.append(" (fsync)");
         if(sc!= null && sc) pgbench_cmd.append(" (sc)");
         if(planCM!=null) pgbench_cmd.append(" (planCM = "+planCM+ ")");
+        if(partitionCount != null) pgbench_cmd.append(" (partitions=").append(partitionCount).append(")");
+        if(partitionMethod != null) pgbench_cmd.append(" (partition_method=").append(partitionMethod).append(")");
         double tps = extractDouble(tpsPatern, pgBenchOutput);
         double latency = extractDouble(latencyPattern, pgBenchOutput);
         Double connectTime = extractDouble(connectPattern, pgBenchOutput);
@@ -339,6 +347,23 @@ public class ToolUtils {
         m = dbPattern.matcher(cmd);
         String db = m.find() ? m.group(1) : null;
 
+
+
+        m = partitionsPattern.matcher(cmd);
+        String partitions = m.find() ? m.group(1) : null;
+
+        m = partitionMethodPattern.matcher(cmd);
+        String partitionsMethod = m.find() ? m.group(1) : null;
+
+        if((partitionsMethod != null) && (partitions != null)) {
+
+            try {
+                initialiseTables(db,List.of("--partitions",partitions,"--partition-method",partitionsMethod).toArray(new String[0]));
+            } catch (SQLException e) {
+                throw new RuntimeException(e);
+            }
+        }
+
         Jit = cmd.contains("(jit)");
         Fsync = cmd.contains("(fsync)");
         Sc = cmd.contains("(sc)");
@@ -348,7 +373,6 @@ public class ToolUtils {
     }
 
     public static void flushOldCommandParams(){
-
         Commands = null;
         Clients = 0;
         Jobs = 0;
@@ -404,29 +428,52 @@ public class ToolUtils {
     }
 
     public static void applyBmOptimizations(boolean changeJIT,Boolean jitSwitch, boolean changeSC, Boolean scSwitch ,boolean changeFSYNC ,Boolean fsyncSwitch,String planCM) {
-        try (Statement stmt = conn.createStatement()) {
-            if(changeJIT) {
-                stmt.execute("ALTER SYSTEM SET jit = '"+ convertToOnOff(jitSwitch)+"'");
-                System.out.println("\u001B[1;32m" + "jit = "+ convertToOnOff(jitSwitch)+" " + "\u001B[0m");
+        Connection connectionToUse = null;
+        boolean shouldCloseConnection = false;
+        
+        try {
+            if (conn != null && !conn.isClosed()) {
+                connectionToUse = conn;
+            } else {
+                connectionToUse = establishPsqlConnection(AppConfig.get("app.psql_url"), false);
+                shouldCloseConnection = true;
+                
+                if (connectionToUse == null) {
+                    System.err.println("Failed to establish connection to apply optimisations.");
+                    return;
+                }
             }
-            if (changeSC) {
-                stmt.execute("ALTER SYSTEM SET synchronous_commit = '"+ convertToOnOff(scSwitch)+"' ");
-                System.out.println("\u001B[1;32m" + "synchronous_commit = "+ convertToOnOff(scSwitch)+" " + "\u001B[0m");
-            }
-            if (changeFSYNC) {
-                stmt.execute("ALTER SYSTEM SET fsync = '"+convertToOnOff(fsyncSwitch)+"'");
-                System.out.println("\u001B[1;32m" + "fsync = "+ convertToOnOff(fsyncSwitch)+" " + "\u001B[0m");
-            }
-            if(planCM!= null && ( planCM.equalsIgnoreCase("force_custom_plan")||planCM.equalsIgnoreCase("force_generic_plan"))){
-                stmt.execute("ALTER SYSTEM SET plan_cache_mode = '"+planCM+"'");
-                System.out.println("\u001B[1;32m" + "plan_cache_mode = "+ planCM +" " + "\u001B[0m");
-            }
+            
+            try (Statement stmt = connectionToUse.createStatement()) {
+                if(changeJIT) {
+                    stmt.execute("ALTER SYSTEM SET jit = '"+ convertToOnOff(jitSwitch)+"'");
+                    System.out.println("\u001B[1;32m" + "jit = "+ convertToOnOff(jitSwitch)+" " + "\u001B[0m");
+                }
+                if (changeSC) {
+                    stmt.execute("ALTER SYSTEM SET synchronous_commit = '"+ convertToOnOff(scSwitch)+"' ");
+                    System.out.println("\u001B[1;32m" + "synchronous_commit = "+ convertToOnOff(scSwitch)+" " + "\u001B[0m");
+                }
+                if (changeFSYNC) {
+                    stmt.execute("ALTER SYSTEM SET fsync = '"+convertToOnOff(fsyncSwitch)+"'");
+                    System.out.println("\u001B[1;32m" + "fsync = "+ convertToOnOff(fsyncSwitch)+" " + "\u001B[0m");
+                }
+                if(planCM!= null && ( planCM.equalsIgnoreCase("force_custom_plan")||planCM.equalsIgnoreCase("force_generic_plan"))){
+                    stmt.execute("ALTER SYSTEM SET plan_cache_mode = '"+planCM+"'");
+                    System.out.println("\u001B[1;32m" + "plan_cache_mode = "+ planCM +" " + "\u001B[0m");
+                }
 
-            stmt.execute("SELECT pg_reload_conf()");
-
-
+                stmt.execute("SELECT pg_reload_conf()");
+            }
         } catch (SQLException e) {
             System.err.println("Failed to update settings: " + e.getMessage());
+        } finally {
+            if (shouldCloseConnection && connectionToUse != null) {
+                try {
+                    connectionToUse.close();
+                } catch (SQLException e) {
+                    System.err.println("Failed to close connection: " + e.getMessage());
+                }
+            }
         }
     }
 
@@ -436,15 +483,41 @@ public class ToolUtils {
     }
 
     public static void resetOptimisationsToDefaults() {
-        try (Statement stmt = conn.createStatement()) {
-            stmt.execute("ALTER SYSTEM RESET jit");
-            stmt.execute("ALTER SYSTEM RESET synchronous_commit");
-            stmt.execute("ALTER SYSTEM RESET fsync");
-            stmt.execute("SELECT pg_reload_conf()");
+        Connection connectionToUse = null;
+        boolean shouldCloseConnection = false;
+        
+        try {
+            if (conn != null && !conn.isClosed()) {
+                connectionToUse = conn;
+            } else {
+                connectionToUse = establishPsqlConnection(AppConfig.get("app.psql_url"), false);
+                shouldCloseConnection = true;
+                
+                if (connectionToUse == null) {
+                    System.err.println("Failed to establish connection to reset optimisations.");
+                    return;
+                }
+            }
+            
+            try (Statement stmt = connectionToUse.createStatement()) {
+                stmt.execute("ALTER SYSTEM RESET jit");
+                stmt.execute("ALTER SYSTEM RESET synchronous_commit");
+                stmt.execute("ALTER SYSTEM RESET fsync");
+                stmt.execute("ALTER SYSTEM RESET plan_cache_mode");
+                stmt.execute("SELECT pg_reload_conf()");
 
-            System.out.println("\u001B[1;34m" + "Settings reverted to original postgresql.conf defaults." + "\u001B[0m");
+                System.out.println("\u001B[1;34m" + "Settings reverted to original postgresql.conf defaults." + "\u001B[0m");
+            }
         } catch (SQLException e) {
-            System.err.println("Failed to connect to apply optimisations! :"+e.getMessage());
+            System.err.println("Failed to reset optimisations: " + e.getMessage());
+        } finally {
+            if (shouldCloseConnection && connectionToUse != null) {
+                try {
+                    connectionToUse.close();
+                } catch (SQLException e) {
+                    System.err.println("Failed to close connection: " + e.getMessage());
+                }
+            }
         }
     }
 
@@ -481,7 +554,6 @@ public class ToolUtils {
 
     public static void checkAndRemoveTheOldTablesForPartitionDb(Operation operation) throws SQLException {
         if(operation!=null) {
-
 
             Connection connection1 = establishPsqlConnection(AppConfig.get("app.psql_url_partition"),false);
             try {
@@ -541,6 +613,5 @@ public class ToolUtils {
             throw new RuntimeException("Problem closing global connection: "+e);
         }
     }
-
 }
 

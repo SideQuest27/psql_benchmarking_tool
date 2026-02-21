@@ -16,5 +16,8 @@ public class RegexPatterns {
     public static Pattern filePattern = Pattern.compile("-f\\s+([^\\s]+)");
     public static Pattern hostPattern = Pattern.compile("(?:-h\\s+|--host=)([a-zA-Z0-9\\.\\-]+)");
     public static Pattern planCacheModePattern = Pattern.compile("planCM\\s*=\\s*([A-Za-z_]+)");
-    public static Pattern dbPattern = Pattern.compile("\\b(\\w+)\\s*$");
+    public static Pattern dbPattern = Pattern.compile("\\b(\\w+)(?=\\s*(?:\\(|$))");
+    public static Pattern partitionsPattern = Pattern.compile("partitions=([0-9]+)");
+    public static Pattern partitionMethodPattern = Pattern.compile("partition_method=([A-Za-z0-9_-]+)");
+
 }

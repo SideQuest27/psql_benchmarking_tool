@@ -81,15 +81,15 @@ public class BatchProcessor
                         }
                         Process process = processBuilder.start();
                         ToolUtils.readAndPrintOutputStream(process);
-                        ToolUtils.savingResults((op.isJit()!= null),(op.isSc()!=null),(op.isFsync()!=null),((op.getPlanCM()!=null ? op.getPlanCM() : null)), isWarmupRun);
+                        ToolUtils.savingResults((op.isJit()!= null),(op.isSc()!=null),(op.isFsync()!=null),((op.getPlanCM()!=null ? op.getPlanCM() : null)), isWarmupRun, partitionMethod, partitionSize);
                         Thread.sleep(10000); //I did this in order for the windows background indexing/caching to idle
 
                     }
+                    ToolUtils.resetOptimisationsToDefaults();
+                    ToolUtils.flushOldCommandParams();
                 } catch (Exception e) {
                     e.printStackTrace();
                 }
-                ToolUtils.resetOptimisationsToDefaults();
-                ToolUtils.flushOldCommandParams();
             });
         };
 
