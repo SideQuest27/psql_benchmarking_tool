@@ -1,0 +1,1 @@
+SELECT * FROM pgbench_accounts WHERE abalance BETWEEN 500 AND 5000;

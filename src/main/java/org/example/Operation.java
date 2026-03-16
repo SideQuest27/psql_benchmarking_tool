@@ -14,7 +14,6 @@ public class Operation {
     private Integer Port;
     private String Host;
     private Boolean ShortConn;
-
     private Integer PartitionSize;
     private String PartitionMethod;  // TODO: 11/02/2026 continue from here
 

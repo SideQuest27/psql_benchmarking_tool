@@ -1,0 +1,244 @@
+[
+  {
+    "Clients": 64,
+    "Jobs": 12,
+    "Time": 60,
+    "Workload": "select-only",
+    "Protocol":"simple"
+  },
+  {
+    "Clients": 64,
+    "Jobs": 12,
+    "Time": 60,
+    "Workload": "select-only",
+    "Protocol":"extended"
+  },
+  {
+    "Clients": 64,
+    "Jobs": 12,
+    "Time": 60,
+    "Workload": "simple-update",
+    "Protocol":"simple"
+  },
+  {
+    "Clients": 64,
+    "Jobs": 12,
+    "Time": 60,
+    "Workload": "simple-update",
+    "Protocol":"extended"
+  },
+  {
+    "Clients": 64,
+    "Jobs": 12,
+    "Time": 60,
+    "Workload": "simple-update",
+    "Protocol":"prepared"
+  },
+  {
+    "Clients": 64,
+    "Jobs": 12,
+    "Time": 60,
+    "Workload": "simple-update",
+    "Protocol":"prepared",
+    "PlanCM": "force_generic_plan"
+  },
+  {
+    "Clients": 64,
+    "Jobs": 12,
+    "Time": 60,
+    "Workload": "simple-update",
+    "Protocol":"prepared",
+    "PlanCM": "force_custom_plan"
+  },
+  {
+    "Clients": 64,
+    "Jobs": 12,
+    "Time": 60,
+    "Workload": "simple-update",
+    "Protocol":"extended",
+    "Port": 6432
+  },
+
+  {
+    "Clients": 64,
+    "Jobs": 12,
+    "Time": 60,
+    "Workload": "simple-update",
+    "Protocol":"extended",
+    "Jit": false
+  },
+  {
+    "Clients": 64,
+    "Jobs": 12,
+    "Time": 60,
+    "Workload": "simple-update",
+    "Protocol":"extended",
+    "Sc": false
+  },
+  {
+    "Clients": 64,
+    "Jobs": 12,
+    "Time": 60,
+    "Workload": "simple-update",
+    "Protocol":"extended",
+    "Fsync":false
+  },
+  {
+    "Clients": 64,
+    "Jobs": 12,
+    "Time": 60,
+    "Workload": "simple-update",
+    "Protocol":"extended",
+    "Sc": false,
+    "Fsync":false
+  },
+
+  {
+    "PartitionSize": 10,
+    "PartitionMethod": "hash",
+    "Clients": 64,
+    "Jobs": 12,
+    "Time": 60,
+    "Protocol": "extended",
+    "Workload": "simple-update"
+  },
+  {
+    "PartitionSize": 40,
+    "PartitionMethod": "hash",
+    "Clients": 64,
+    "Jobs": 12,
+    "Time": 60,
+    "Protocol": "extended",
+    "Workload": "simple-update"
+  },
+  {
+    "PartitionSize": 80,
+    "PartitionMethod": "hash",
+    "Clients": 64,
+    "Jobs": 12,
+    "Time": 60,
+    "Protocol": "extended",
+    "Workload": "simple-update"
+  },
+
+  {
+    "Clients": 64,
+    "Jobs": 12,
+    "Time": 60,
+    "Protocol": "extended",
+    "ScriptPath": "src/main/resources/range_qry.sql"
+  },
+  {
+    "PartitionSize": 30,
+    "PartitionMethod": "hash",
+    "Clients": 64,
+    "Jobs": 12,
+    "Time": 60,
+    "Protocol": "extended",
+    "ScriptPath": "src/main/resources/range_qry.sql"
+  },
+  {
+    "PartitionSize": 30,
+    "PartitionMethod": "range",
+    "Clients": 64,
+    "Jobs": 12,
+    "Time": 60,
+    "Protocol": "extended",
+    "ScriptPath": "src/main/resources/range_qry.sql"
+  },
+
+  {
+    "Clients": 64,
+    "Jobs": 12,
+    "Time": 60,
+    "Protocol": "extended",
+    "Workload": "tpcb-like"
+  },
+  {
+    "PartitionSize": 30,
+    "PartitionMethod": "hash",
+    "Clients": 64,
+    "Jobs": 12,
+    "Time": 60,
+    "Protocol": "extended",
+    "Workload": "tpcb-like"
+  },
+  {
+    "PartitionSize": 30,
+    "PartitionMethod": "range",
+    "Clients": 64,
+    "Jobs": 12,
+    "Time": 60,
+    "Protocol": "extended",
+    "Workload": "tpcb-like"
+  },
+  {
+    "Clients": 5,
+    "Jobs": 2,
+    "Time": 60,
+    "Workload": "simple-update",
+    "Protocol":"extended",
+    "Port": 5433,
+    "ShortConn": true
+  },
+  {
+    "Clients": 5,
+    "Jobs": 2,
+    "Time": 60,
+    "Workload": "simple-update",
+    "Protocol":"extended",
+    "Port": 6432,
+    "ShortConn": true
+  },
+  {
+    "Clients": 64,
+    "Jobs": 12,
+    "Time": 60,
+    "Protocol":"extended",
+    "ScriptPath": "src/main/resources/insert-only.sql"
+  },
+  {
+    "PartitionSize": 30,
+    "PartitionMethod": "range",
+    "Clients": 64,
+    "Jobs": 12,
+    "Time": 60,
+    "Protocol": "extended",
+    "ScriptPath": "src/main/resources/insert-only.sql"
+  },
+  {
+    "PartitionSize": 30,
+    "PartitionMethod": "hash",
+    "Clients": 64,
+    "Jobs": 12,
+    "Time": 60,
+    "Protocol": "extended",
+    "ScriptPath": "src/main/resources/insert-only.sql"
+  },
+  {
+    "Clients": 64,
+    "Jobs": 12,
+    "Time": 60,
+    "Protocol": "extended",
+    "ScriptPath": "src/main/resources/range_qry_non_key_attribute.sql"
+  },
+  {
+    "PartitionSize": 30,
+    "PartitionMethod": "hash",
+    "Clients": 64,
+    "Jobs": 12,
+    "Time": 60,
+    "Protocol": "extended",
+    "ScriptPath": "src/main/resources/range_qry_non_key_attribute.sql"
+  },
+  {
+    "PartitionSize": 30,
+    "PartitionMethod": "range",
+    "Clients": 64,
+    "Jobs": 12,
+    "Time": 60,
+    "Protocol": "extended",
+    "ScriptPath": "src/main/resources/range_qry_non_key_attribute.sql"
+  }
+
+]

@@ -26,7 +26,6 @@ public class Main {
     public static BatchProcessor batchProcessor;
 
     // TODO: 11/01/2026 Fix the bug with the double file printing
-    // TODO: 17/02/2026  need to add tags for the pgbench_partition commands like (partition size ect..)
     public static void main(String[] args) throws IOException, InterruptedException, SQLException {
 
         System.out.println(AppArt.art);

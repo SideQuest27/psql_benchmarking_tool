@@ -48,8 +48,8 @@ public class BatchProcessor
                 String partitionMethod = op.getPartitionMethod();
                 Integer partitionSize = op.getPartitionSize();
                 ArrayList<String> additionalCmd = new ArrayList<>();
-                if (partitionMethod!= null) additionalCmd.addAll(List.of("--partition-method",partitionMethod));
-                if (partitionSize!= null) additionalCmd.addAll(List.of("--partitions",partitionSize.toString()));
+                if (partitionMethod!= null) additionalCmd.addAll(List.of("--partition-method",partitionMethod)); // 0,1
+                if (partitionSize!= null) additionalCmd.addAll(List.of("--partitions",partitionSize.toString())); // 2,3
                 if(!additionalCmd.isEmpty()){
                     try {
                         ToolUtils.initialiseTables(AppConfig.get("app.psql_db_name_partition"),additionalCmd.toArray(new String[0]));

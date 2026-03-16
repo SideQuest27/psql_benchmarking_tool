@@ -151,7 +151,7 @@ public class ToolUtils {
         ResultSet rs = ps.executeQuery();
         exists = rs.next();
 
-        if(additionalCommands.length != 0){
+        if(additionalCommands.length != 0 && exists){
             if (batchProcessor != null && exists){
                 checkAndRemoveTheOldTablesForPartitionDb(batchProcessor.getCurrentOperation());
             }
@@ -542,7 +542,8 @@ public class ToolUtils {
 
     public static void stabilisationBlock(){
         try (Statement stmt = conn.createStatement()) {
-            System.out.println("\n"+"\u001B[35m"+"Stabilising the benchmark environment..."+"\u001B[0m"+"\n");
+
+            System.out.println("\n"+"\u001B[35m"+"Stabilising the benchmark environment...  "+conn.getCatalog()+"\u001B[0m"+"\n");
             stmt.execute("CHECKPOINT"); // This flushes dirty buffers to disk so the background writer is quiet
             stmt.execute("VACUUM ANALYZE"); //This cleans up dead tuples and updates statistics for the query planner
             stmt.execute("DISCARD ALL"); // This resets session state, drops temporary tables, and clears the plan cache
