@@ -1,17 +1,27 @@
 [
   {
-    "Clients": 64,
+    "Clients": 256,
     "Jobs": 12,
-    "Time": 30,
-    "Workload": "simple-update",
-    "Protocol": "extended"
+    "Time": 60,
+    "Protocol": "extended",
+    "ScriptPath": "src/main/resources/hash_stress_test.sql"
   },
   {
-    "Clients": 64,
+    "PartitionSize": 30,
+    "PartitionMethod": "hash",
+    "Clients": 256,
     "Jobs": 12,
-    "Time": 30,
-    "Workload": "simple-update",
+    "Time": 60,
     "Protocol": "extended",
-    "Port": 6432
+    "ScriptPath": "src/main/resources/hash_stress_test.sql"
+  },
+  {
+    "PartitionSize": 30,
+    "PartitionMethod": "range",
+    "Clients": 256,
+    "Jobs": 12,
+    "Time": 60,
+    "Protocol": "extended",
+    "ScriptPath": "src/main/resources/hash_stress_test.sql"
   }
 ]

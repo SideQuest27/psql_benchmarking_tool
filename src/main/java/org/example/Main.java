@@ -65,7 +65,7 @@ public class Main {
                 String saveDecision = sc.nextLine();
                 if(saveDecision.trim().equalsIgnoreCase("y")) {
                     // Interactive runs are never marked as warmup runs nor do i bother with saving the tags.
-                    savingResults(Jit,Fsync,Sc,PlanCM,false, null, null);
+                    savingResults(Jit,Sc,Fsync,PlanCM,false, null, null);
                 }
                 System.out.println("Would you like to rerun the same benchmark? (y/n)");
                 String rerunDecesion = sc.nextLine();

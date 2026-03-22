@@ -4,23 +4,23 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.util.Properties;
 
-public class AppConfig {
+public class AppConfig
+{
     private static final Properties properties = new Properties();
 
-    static {
-        try (InputStream input = AppConfig.class.getClassLoader().getResourceAsStream("application.properties")) {
-            if (input == null) {
+    static{
+        try (InputStream input = AppConfig.class.getClassLoader().getResourceAsStream("application.properties")){
+            if (input == null){
                 System.err.println("Sorry, unable to find application.properties");
-            } else {
+            }else{
                 properties.load(input);
             }
-        } catch (IOException ex) {
-            ex.printStackTrace();
+        } catch (IOException e){
+            e.printStackTrace();
         }
     }
 
     public static String get(String key) {
         return properties.getProperty(key);
     }
-
 }
