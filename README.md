@@ -1,4 +1,4 @@
-# PostgreSQL Benchmarking Tool (Java + pgbench)
+# Capuchino
 
 This project is a CLI-based Java benchmarking tool for PostgreSQL using pgbench.
 It supports interactive input, batch workloads, and stores benchmark results in PostgreSQL.
